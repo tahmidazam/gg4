@@ -128,7 +128,7 @@ def make_freq_map_figure(
 
     # five π-fraction ticks with uniform log spacing (factor 4 between each)
     xticks = [np.pi / 128, np.pi / 32, np.pi / 8, np.pi / 2, np.pi]
-    xticklabels = [r"$\pi/128$", r"$\pi/32$", r"$\pi/8$", r"$\pi/2$", r"$\pi$"]
+    xticklabels = [r"$\frac{\pi}{128}$", r"$\frac{\pi}{32}$", r"$\frac{\pi}{8}$", r"$\frac{\pi}{2}$", r"$\pi$"]
     axes[0, 0].set_xticks(xticks)
     axes[0, 0].set_xticklabels(xticklabels)
     axes[0, 0].set_yticks(range(0, q, 4))

@@ -69,20 +69,26 @@
 \begin{multicols*}{2}
   \section*{System identification}
 
-  $n_x = 6$ was read from the singular-value spectrum of the block Hankel
-  matrix (\autoref{fig:latent_dim}): six singular values exceed the relative
-  threshold $10^{-6}\sigma_1$, with the remainder at numerical zero. ERA and
-  CVA+EM were both fitted with $n_x = 6$. CVA+EM showed higher mean absolute error in both magnitude and
-  phase across all $n_u n_y = 32$ input--output channels (\autoref{fig:bode}), and
-  its analytic transfer function failed to reproduce the per-neuron frequency
-  selectivity for input $u_1$ that ERA recovered (\autoref{fig:freq_map}).
-  ERA was therefore adopted.
+  $n_x = 6$ was read from the singular-value spectrum of the block Hankel matrix
+  (\autoref{fig:latent_dim}): six singular values exceed the relative threshold
+  $10^{-6}\sigma_1$, with the remainder at numerical zero. ERA and CVA+EM were
+  both fitted with $n_x = 6$. CVA+EM showed higher mean absolute error in both
+  magnitude and phase across all $n_u n_y = 32$ input--output channels
+  (\autoref{fig:bode}), and its transfer function failed to reproduce the
+  per-neuron frequency selectivity for input $u_1$ that ERA recovered
+  (\autoref{fig:freq_map}). One-step-ahead Kalman prediction on $N = 50$
+  held-out trials ($T = 2000$ steps) reversed this ordering: CVA+EM achieved a
+  higher median Frobenius $R^2_F$ ($0.399$ vs $0.289$;
+  \autoref{fig:obs_reconstruction}). ERA was adopted on the basis of its
+  frequency-domain accuracy.
 
   \pgffigure[H]{latent_dim}
 \end{multicols*}
 
 \pgffigure{id}
 \pgffigure{bode}
+\pgffigure{obs_reconstruction}
+
 \pgffigure{freq_map}
 
 \end{document}
