@@ -16,3 +16,9 @@ dependencies = [
     "tqdm>=4.68.2",
     "ty>=0.0.46",
 ]
+
+[tool.ruff]
+exclude = ["provided"]
+
+[tool.ty.environment]
+exclude = ["provided"]
