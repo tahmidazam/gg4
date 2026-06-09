@@ -2983,16 +2983,16 @@
 \pgfsetstrokecolor{currentstroke}%
 \pgfsetstrokeopacity{0.800000}%
 \pgfsetdash{}{0pt}%
-\pgfpathmoveto{\pgfqpoint{1.862213in}{0.453306in}}%
+\pgfpathmoveto{\pgfqpoint{1.862212in}{0.453306in}}%
 \pgfpathlineto{\pgfqpoint{2.991108in}{0.453306in}}%
 \pgfpathquadraticcurveto{\pgfqpoint{3.018886in}{0.453306in}}{\pgfqpoint{3.018886in}{0.481084in}}%
 \pgfpathlineto{\pgfqpoint{3.018886in}{1.023908in}}%
 \pgfpathquadraticcurveto{\pgfqpoint{3.018886in}{1.051686in}}{\pgfqpoint{2.991108in}{1.051686in}}%
-\pgfpathlineto{\pgfqpoint{1.862213in}{1.051686in}}%
+\pgfpathlineto{\pgfqpoint{1.862212in}{1.051686in}}%
 \pgfpathquadraticcurveto{\pgfqpoint{1.834435in}{1.051686in}}{\pgfqpoint{1.834435in}{1.023908in}}%
 \pgfpathlineto{\pgfqpoint{1.834435in}{0.481084in}}%
-\pgfpathquadraticcurveto{\pgfqpoint{1.834435in}{0.453306in}}{\pgfqpoint{1.862213in}{0.453306in}}%
-\pgfpathlineto{\pgfqpoint{1.862213in}{0.453306in}}%
+\pgfpathquadraticcurveto{\pgfqpoint{1.834435in}{0.453306in}}{\pgfqpoint{1.862212in}{0.453306in}}%
+\pgfpathlineto{\pgfqpoint{1.862212in}{0.453306in}}%
 \pgfpathclose%
 \pgfusepath{stroke,fill}%
 \end{pgfscope}%
@@ -3069,7 +3069,7 @@
 \definecolor{textcolor}{rgb}{0.000000,0.000000,0.000000}%
 \pgfsetstrokecolor{textcolor}%
 \pgfsetfillcolor{textcolor}%
-\pgftext[x=2.278879in,y=0.527766in,left,base]{\color{textcolor}{\sffamily\fontsize{6.940000}{8.328000}\selectfont\catcode`\^=\active\def^{\ifmmode\sp\else\^{}\fi}\catcode`\%=\active\def%{\%}$n = 6$}}%
+\pgftext[x=2.278879in,y=0.527766in,left,base]{\color{textcolor}{\sffamily\fontsize{6.940000}{8.328000}\selectfont\catcode`\^=\active\def^{\ifmmode\sp\else\^{}\fi}\catcode`\%=\active\def%{\%}$n_x = 6$}}%
 \end{pgfscope}%
 \end{pgfpicture}%
 \makeatother%

@@ -1,6 +1,6 @@
 """Shared ERA data-collection utilities.
 
-Both the model-order selection notebook and the ERA identification notebook
+Both the latent-dimension selection notebook and the ERA identification notebook
 depend on these functions, so they live here rather than in either notebook's
 own module folder.
 """

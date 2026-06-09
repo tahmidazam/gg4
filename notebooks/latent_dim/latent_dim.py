@@ -1,4 +1,4 @@
-"""Plotting utilities for the model-order selection notebook."""
+"""Plotting utilities for the latent-dimension selection notebook."""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ def make_singular_value_figure(
     """Build the singular-value decay figure and return it.
 
     sv_norm   : normalised singular values sv / sv[0].
-    n_latent  : selected model order (drawn as a vertical line).
+    n_latent  : $n_x$, number of latent dimensions (drawn as a vertical line).
     threshold : relative threshold (drawn as a horizontal line).
     n_show    : number of singular values to display.
     figsize   : (width_in, height_in) — caller sets this for display or export.
@@ -37,7 +37,7 @@ def make_singular_value_figure(
         label="Singular value",
     )
     ax.axhline(threshold, color="tab:orange", linestyle="--", label=threshold_label)
-    ax.axvline(n_latent, color="tab:red", linestyle=":", label=rf"$n = {n_latent}$")
+    ax.axvline(n_latent, color="tab:red", linestyle=":", label=rf"$n_x = {n_latent}$")
     ax.set_xlabel("index")
     ax.set_ylabel(r"$\sigma_i / \sigma_1$")
     ax.set_xticks(indices)

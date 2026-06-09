@@ -21,13 +21,13 @@ from era_utils import build_hankel, collect_markov_parameters  # noqa: F401
 def era(
     H0: np.ndarray,
     H1: np.ndarray,
-    model_order: int,
+    n_latent: int,
     q: int,
     p: int,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Return (A, B, C, singular_values) from ERA."""
     U_, sv, Vt = np.linalg.svd(H0)
-    n = model_order
+    n = n_latent
     U_n, s_n, V_n = U_[:, :n], sv[:n], Vt[:n, :].T
     S_sqrt = np.diag(np.sqrt(s_n))
     S_inv_sqrt = np.diag(1.0 / np.sqrt(s_n))

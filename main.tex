@@ -69,11 +69,16 @@
 \begin{multicols*}{2}
   \section*{System identification}
 
-  Given the importance of oscillation frequency for muscle selection and
-  periodicity for muscle power, we evaluate system identification strategies
-  that minimise the error in frequency response characteristics between empirical and analytic.
+  $n_x = 6$ was read from the singular-value spectrum of the block Hankel
+  matrix (\autoref{fig:latent_dim}): six singular values exceed the relative
+  threshold $10^{-6}\sigma_1$, with the remainder at numerical zero. ERA and
+  CVA+EM were both fitted with $n_x = 6$. CVA+EM showed higher mean absolute error in both magnitude and
+  phase across all $n_u n_y = 32$ input--output channels (\autoref{fig:bode}), and
+  its analytic transfer function failed to reproduce the per-neuron frequency
+  selectivity for input $u_1$ that ERA recovered (\autoref{fig:freq_map}).
+  ERA was therefore adopted.
 
-  \pgffigure[H]{model_order}
+  \pgffigure[H]{latent_dim}
 \end{multicols*}
 
 \pgffigure{id}
