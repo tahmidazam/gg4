@@ -14,6 +14,19 @@
 % Caption formatting:
 \usepackage[labelfont=bf, textfont=normalfont, justification=raggedright, singlelinecheck=false, font=small]{caption}
 
+% Title formatting
+\usepackage{titlesec}
+\titleformat{\section}
+  {\normalfont\bfseries}
+  {\thesection}{1em}{}
+\titlespacing*{\section}{0pt}{1.2\baselineskip}{0.6\baselineskip}
+\titleformat{\subsection}
+  {\normalfont\itshape}
+  {\thesubsection}{1em}{}
+\titlespacing*{\subsection}{0pt}{1\baselineskip}{0.4\baselineskip}
+
+% Columns
+\usepackage{multicol}
 
 % Maths
 \usepackage{amsmath}
@@ -28,28 +41,43 @@
 % Hyperlinks
 \usepackage[colorlinks=true, linkcolor=blue, urlcolor=blue, citecolor=blue]{hyperref}
 
+% Layout
+\usepackage{float}
+
 % \pgffigure{<key>} inserts a float figure from figures/<key>.pgf, captions it
 % from captions/<key>.tex, and labels it fig:<key>.
-\NewDocumentCommand{\pgffigure}{m}{%
-  \begin{figure}[htbp]%
-    \centering%
-    \input{figures/#1.pgf}%
-    \caption{\protect\input{captions/#1.tex}}%
-    \label{fig:#1}%
-  \end{figure}%
+\NewDocumentCommand{\pgffigure}{s O{htbp} m}{%
+  \IfBooleanTF{#1}{%
+    \begin{figure*}[#2]%
+      \centering%
+      \input{figures/#3.pgf}%
+      \caption{\protect\input{captions/#3.tex}}%
+      \label{fig:#3}%
+    \end{figure*}%
+  }{%
+    \begin{figure}[#2]%
+      \centering%
+      \input{figures/#3.pgf}%
+      \caption{\protect\input{captions/#3.tex}}%
+      \label{fig:#3}%
+    \end{figure}%
+  }%
 }
 
 \begin{document}
 
-\section{System identification}
+\begin{multicols*}{2}
+  \section*{System identification}
 
-Given the importance of oscillation frequency for muscle selection and
-periodicity for muscle power, we evaluate a system identification strategy
-that seeks to align the analytical frequency response derived from system
-matrices to the empirical frequency response measured from the brain.
+  Given the importance of oscillation frequency for muscle selection and
+  periodicity for muscle power, we evaluate system identification strategies
+  that minimise the error in frequency response characteristics between empirical and analytic.
 
-\pgffigure{model_order}
+  \pgffigure[H]{model_order}
+\end{multicols*}
+
 \pgffigure{id}
 \pgffigure{bode}
+\pgffigure{freq_map}
 
 \end{document}

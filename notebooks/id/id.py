@@ -329,29 +329,63 @@ def make_id_figure(
     """2-row heatmap figure comparing ERA (top) and CVA+EM (bottom).
 
     era_mats / cva_mats : [A, B, C, Q, R] for each method.
-    Each column shares the same colour scale across rows to enable comparison.
+    Each subplot has its own symmetric colour scale (±max|entry|) shown in its title.
+    Cells are square; equal absolute gaps separate the five columns.
     """
-    titles = [r"$A$", r"$B$", r"$C$", r"$Q$", r"$R$"]
+    titles = ["A", "B", "C", "Q", "R"]
     row_labels = ["ERA", "CVA+EM"]
-    width_ratios = [n, p, q, n, q]
 
-    fig, axes = plt.subplots(
-        2,
-        5,
-        figsize=figsize,
-        gridspec_kw={"width_ratios": width_ratios},
-        layout="constrained",
-    )
+    fig_w, fig_h = figsize
+
+    # Fixed margins in inches
+    top = 0.20    # clearance above top row for single-line titles
+    bottom = 0.20  # clearance below bottom row for single-line xlabels
+    vgap = 0.05   # vertical gap between the two rows (no title in gap)
+    left = 0.25   # clearance for row labels
+    right = 0.03
+
+    # Equal row height that fills the available vertical space
+    row_h = (fig_h - top - bottom - vgap) / 2
+
+    # Subplot widths: square cells → width = row_h × ncols / nrows
+    sub_ws = [row_h * m.shape[1] / m.shape[0] for m in era_mats]
+
+    # Equal horizontal gap between the five subplots
+    n_gaps = len(era_mats) - 1
+    h_gap = (fig_w - left - right - sum(sub_ws)) / n_gaps
+
+    # Left edge of each subplot in inches
+    x_lefts: list[float] = []
+    x = left
+    for w in sub_ws:
+        x_lefts.append(x)
+        x += w + h_gap
+
+    fig = plt.figure(figsize=figsize)
+    axes = np.empty((2, len(era_mats)), dtype=object)
+
+    for row in range(2):
+        y_in = bottom + (1 - row) * (row_h + vgap)
+        for col, sub_w in enumerate(sub_ws):
+            axes[row, col] = fig.add_axes([
+                x_lefts[col] / fig_w,
+                y_in / fig_h,
+                sub_w / fig_w,
+                row_h / fig_h,
+            ])
 
     for col, (era_mat, cva_mat, title) in enumerate(zip(era_mats, cva_mats, titles)):
         for row, (mat, row_label) in enumerate(zip([era_mat, cva_mat], row_labels)):
             vmax = float(np.abs(mat).max()) or 1.0
             ax = axes[row, col]
-            ax.imshow(mat, cmap="RdBu_r", vmin=-vmax, vmax=vmax, aspect="auto")
+            ax.imshow(mat, cmap="RdBu_r", vmin=-vmax, vmax=vmax)
             ax.set_xticks([])
             ax.set_yticks([])
+            label = rf"$\mathbf{{{title}}}$ $[{-vmax:.2f},\,{vmax:.2f}]$"
             if row == 0:
-                ax.set_title(title)
+                ax.set_title(label)
+            else:
+                ax.set_xlabel(label, labelpad=3)
 
     for row, row_label in enumerate(row_labels):
         axes[row, 0].set_ylabel(row_label, rotation=90)

@@ -85,12 +85,12 @@ def apply_figure_style(fig: mpl.figure.Figure) -> None:
                 text.set_fontsize("x-small")
 
 
-def save_pgf(fig: mpl.figure.Figure, path: Path | str) -> None:
+def save_pgf(fig: mpl.figure.Figure, path: Path | str, dpi: int = 150) -> None:
     """Save a figure to PGF, creating parent directories if needed."""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     apply_figure_style(fig)
-    fig.savefig(path, backend="pgf")
+    fig.savefig(path, backend="pgf", dpi=dpi)
     print(f"Saved to {path.resolve()}")
 
 
