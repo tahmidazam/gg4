@@ -4,9 +4,14 @@ main.fls
 main.log
 main.synctex.gz
 main.xdv
+main.out
 
 context/
 
 .venv/
+__pycache__
 
 wheels/
+
+data/
+
