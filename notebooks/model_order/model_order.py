@@ -41,9 +41,5 @@ def make_singular_value_figure(
     ax.set_xlabel("index")
     ax.set_ylabel(r"$\sigma_i / \sigma_1$")
     ax.set_xticks(indices)
-    # Major and minor gridlines
-    ax.minorticks_on()
-    ax.grid(True, which="major", linestyle="-", linewidth=0.5, alpha=0.5)
-    ax.grid(True, which="minor", linestyle=":", linewidth=0.3, alpha=0.3)
-    ax.legend(fontsize="small")
+    ax.legend()
     return fig

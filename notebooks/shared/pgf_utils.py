@@ -59,10 +59,37 @@ def figure_inches(width_frac: float, height_frac: float) -> tuple[float, float]:
     return width_frac * A4_W_IN, height_frac * A4_H_IN
 
 
+def apply_figure_style(fig: mpl.figure.Figure) -> None:
+    """Apply journal-style formatting to every axes in a figure.
+
+    Centralises styling that would otherwise be repeated per-axis in every
+    make_*_figure function: left-aligned small titles, small axis labels,
+    major/minor gridlines (skipped for image axes), and small legend text.
+    Called automatically by save_pgf; call it manually in display cells too
+    if consistent styling is wanted on-screen.
+    """
+    for ax in fig.axes:
+        title_text = ax.get_title()
+        ax.set_title(title_text, loc="left", fontsize="small")
+        ax.set_title("", loc="center")
+        ax.xaxis.label.set_size("small")
+        ax.yaxis.label.set_size("small")
+        ax.tick_params(axis="both", labelsize="small")
+        if not ax.images:
+            ax.minorticks_on()
+            ax.grid(True, which="major", linestyle="-", alpha=0.5)
+            ax.grid(True, which="minor", linestyle=":", alpha=0.3)
+        legend = ax.get_legend()
+        if legend is not None:
+            for text in legend.get_texts():
+                text.set_fontsize("x-small")
+
+
 def save_pgf(fig: mpl.figure.Figure, path: Path | str) -> None:
     """Save a figure to PGF, creating parent directories if needed."""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
+    apply_figure_style(fig)
     fig.savefig(path, backend="pgf")
     print(f"Saved to {path.resolve()}")
 

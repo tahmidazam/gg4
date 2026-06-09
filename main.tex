@@ -1,4 +1,55 @@
-\documentclass{article}
+\documentclass[a4paper, 10pt]{article}
+
+% Custom command parsing
+\usepackage{xparse}
+
+% Margins
+\usepackage[margin=1in]{geometry}
+
+% Font
+\usepackage[OT1]{fontenc}
+\renewcommand*\familydefault{\sfdefault}
+\usepackage{sfmath}
+
+% Caption formatting:
+\usepackage[labelfont=bf, textfont=normalfont, justification=raggedright, singlelinecheck=false, font=small]{caption}
+
+
+% Maths
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+% Plotting
+\usepackage{pgf}
+\usepackage{graphicx}
+\graphicspath{{figures/}}
+\providecommand{\mathdefault}[1]{#1}
+
+% Hyperlinks
+\usepackage[colorlinks=true, linkcolor=blue, urlcolor=blue, citecolor=blue]{hyperref}
+
+% \pgffigure{<key>} inserts a float figure from figures/<key>.pgf, captions it
+% from captions/<key>.tex, and labels it fig:<key>.
+\NewDocumentCommand{\pgffigure}{m}{%
+  \begin{figure}[htbp]%
+    \centering%
+    \input{figures/#1.pgf}%
+    \caption{\protect\input{captions/#1.tex}}%
+    \label{fig:#1}%
+  \end{figure}%
+}
+
 \begin{document}
-Report
+
+\section{System identification}
+
+Given the importance of oscillation frequency for muscle selection and
+periodicity for muscle power, we evaluate a system identification strategy
+that seeks to align the analytical frequency response derived from system
+matrices to the empirical frequency response measured from the brain.
+
+\pgffigure{model_order}
+\pgffigure{id}
+\pgffigure{bode}
+
 \end{document}
