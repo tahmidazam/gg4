@@ -110,11 +110,39 @@
   \pgffigure[H]{latent_dim}
 
   \pgffigure[H]{id}
-
 \end{multicols*}
 
 \pgffigure{bode}
 \pgffigure{obs_reconstruction}
 \pgffigure{freq_map}
+
+\begin{multicols}{2}
+
+  \section*{Closed-loop spectral control}
+
+  Having selected ERA+EM at $n_x = 4$ as the working model, we test whether
+  closed-loop stimulation can reproduce a prescribed frequency spectrum in
+  neural population activity.  The target is a sum of two sinusoids at
+  $f \in \{0.01,\, 0.03\}$ cycles per sample with amplitudes $\{1.5,\, 0.7\}$,
+  oscillating about a physical population mean of $2.5$ (well within the
+  reachable range of $[0.24,\, 5.4]$).  Three controllers were implemented
+  against this model: Linear--Quadratic--Gaussian (LQG), LQG with integral
+  action (LQI), and Model Predictive Control (MPC).
+
+  All three use a Kalman filter for online state estimation.
+  The LQR tracking cost is a per-neuron cost $C^\top C$
+  ($\lambda_\text{var} = 1$), driving all 16 output channels simultaneously.
+  LQI adds an integrator on the centred output error to reject steady-state
+  bias; the integrator weight $q_\text{int}$ is kept small so that sinusoidal
+  tracking error is not accumulated.
+  MPC solves a condensed receding-horizon quadratic programme ($H = 30$ steps,
+  covering one full period of $f = 0.03$) with explicit input box constraints,
+  warm-started between successive steps.
+  Controller hyperparameters were selected via a log-uniform random search
+  (8 trials per controller) scored on RMS tracking error.
+
+  \pgffigure*{spectral_control}
+
+\end{multicols}
 
 \end{document}
