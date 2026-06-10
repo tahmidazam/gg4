@@ -11,6 +11,10 @@ from GG4 import Brain
 from matplotlib.patches import Patch
 
 sys.path.insert(0, str((Path(__file__).parent.parent / "shared").resolve()))
+from pgf_utils import notebook_github_url
+from system_estimate import SystemEstimate  # noqa: F401
+
+NOTEBOOK_GITHUB_URL = notebook_github_url(__file__)
 
 
 # ── Kalman one-step-ahead prediction ──────────────────────────────────────────
@@ -92,22 +96,13 @@ def run_trial(
     seed: int,
     n_steps: int,
     n_burnin: int,
-    A_era: np.ndarray,
-    B_era: np.ndarray,
-    C_era: np.ndarray,
-    Q_era: np.ndarray,
-    R_era: np.ndarray,
-    A_cva: np.ndarray,
-    B_cva: np.ndarray,
-    C_cva: np.ndarray,
-    Q_cva: np.ndarray,
-    R_cva: np.ndarray,
+    estimates: list[SystemEstimate],
     t_skip: int,
-) -> tuple[np.ndarray, np.ndarray, float, float]:
-    """Run one test trial.
+) -> dict[str, tuple[np.ndarray, float]]:
+    """Run one test trial and evaluate all estimators.
 
-    Returns (r2_era, r2_cva, r2f_era, r2f_cva) where r2_era/r2_cva have
-    shape (n_y,) and r2f_era/r2f_cva are scalars (Frobenius-based R²).
+    Returns a dict keyed by ``est.name``, each value being
+    ``(r2_per_channel, r2_frobenius)`` with shapes ``(n_y,)`` and ``()``.
     """
     brain = Brain(random_seed=seed)
     rng = np.random.default_rng(seed * 100 + 7)
@@ -128,21 +123,84 @@ def run_trial(
     Y_c = Y - Y.mean(axis=0)
     U_c = U - U.mean(axis=0)
 
-    Y_hat_era = one_step_ahead(Y_c, U_c, A_era, B_era, C_era, Q_era, R_era)
-    Y_hat_cva = one_step_ahead(Y_c, U_c, A_cva, B_cva, C_cva, Q_cva, R_cva)
-
-    return (
-        r2_per_channel(Y_c, Y_hat_era, t_skip),
-        r2_per_channel(Y_c, Y_hat_cva, t_skip),
-        r2_frobenius(Y_c, Y_hat_era, t_skip),
-        r2_frobenius(Y_c, Y_hat_cva, t_skip),
-    )
+    results: dict[str, tuple[np.ndarray, float]] = {}
+    for est in estimates:
+        Y_hat = one_step_ahead(Y_c, U_c, est.A, est.B, est.C, est.Q, est.R)
+        results[est.name] = (
+            r2_per_channel(Y_c, Y_hat, t_skip),
+            r2_frobenius(Y_c, Y_hat, t_skip),
+        )
+    return results
 
 
 # ── Figure ─────────────────────────────────────────────────────────────────────
 
-_ERA_COLOUR = "#1f77b4"
-_CVA_COLOUR = "#ff7f0e"
+
+def make_obs_reconstruction_figure(
+    data: dict,
+    figsize: tuple[float, float],
+) -> plt.Figure:
+    """Two-panel figure: per-channel R² (left) and Frobenius R² (right).
+
+    ``data`` keys:
+        estimates : list[SystemEstimate] — ordered list used for labels/colours
+        r2        : dict[name, (N, n_y) array] — per-channel R² across trials
+        r2f       : dict[name, (N,) array]     — Frobenius R² across trials
+    """
+    estimates: list[SystemEstimate] = data["estimates"]
+    r2_dict: dict[str, np.ndarray] = data["r2"]
+    r2f_dict: dict[str, np.ndarray] = data["r2f"]
+
+    n_methods = len(estimates)
+    n_y = next(iter(r2_dict.values())).shape[1]
+    spacing = n_methods + 1  # gap of 1 between channel groups
+
+    fig, (ax_l, ax_r) = plt.subplots(
+        1, 2, figsize=figsize, layout="constrained", gridspec_kw={"width_ratios": [4, 1]}, sharey=True
+    )
+
+    for m, est in enumerate(estimates):
+        chan_pos = [spacing * j + m + 1 for j in range(n_y)]
+        parts = ax_l.violinplot(
+            [r2_dict[est.name][:, j] for j in range(n_y)],
+            positions=chan_pos,
+            showmedians=True,
+            widths=0.7,
+        )
+        _style_violin(parts, est.colour)
+
+        parts_r = ax_r.violinplot(
+            r2f_dict[est.name],
+            positions=[m + 1],
+            showmedians=True,
+            widths=0.6,
+        )
+        _style_violin(parts_r, est.colour)
+
+    # x-ticks at centre of each channel group
+    centres = [spacing * j + (n_methods + 1) / 2 for j in range(n_y)]
+    ax_l.set_xticks(centres)
+    ax_l.set_xticklabels([str(j + 1) for j in range(n_y)])
+    ax_l.set_xlabel(r"output channel $j$")
+    ax_l.set_title(r"$R^2$")
+    ax_l.axhline(0, color="0.6", lw=0.5, ls="--")
+
+    ax_r.set_xticks(list(range(1, n_methods + 1)))
+    ax_r.set_xticklabels([""] * n_methods)
+    ax_r.set_title(r"$R^2_F$")
+    ax_r.axhline(0, color="0.6", lw=0.5, ls="--")
+
+    ax_l.set_ylim(bottom=0)
+
+    fig.legend(
+        handles=[Patch(facecolor=est.colour, alpha=0.6, label=est.label) for est in estimates],
+        loc="outside lower center",
+        ncol=n_methods,
+        frameon=False,
+        fontsize="x-small",
+    )
+
+    return fig
 
 
 def _style_violin(parts: dict, colour: str) -> None:
@@ -152,82 +210,3 @@ def _style_violin(parts: dict, colour: str) -> None:
     for key in ("cmedians", "cbars", "cmins", "cmaxes"):
         if key in parts:
             parts[key].set_color(colour)
-
-
-def make_obs_reconstruction_figure(
-    data: dict,
-    figsize: tuple[float, float],
-) -> plt.Figure:
-    """Two-panel figure: per-channel R² (left) and Frobenius R² (right).
-
-    data keys:
-        r2_era : (N, n_y) — per-channel R² across trials
-        r2_cva : (N, n_y)
-        r2f_era: (N,)     — Frobenius R² across trials
-        r2f_cva: (N,)
-    """
-    r2_era = data["r2_era"]
-    r2_cva = data["r2_cva"]
-    r2f_era = data["r2f_era"]
-    r2f_cva = data["r2f_cva"]
-
-    n_y = r2_era.shape[1]
-
-    fig, (ax_l, ax_r) = plt.subplots(
-        1, 2, figsize=figsize, gridspec_kw={"width_ratios": [4, 1]}, sharey=True
-    )
-
-    # Left: 32 violins grouped by channel (ERA then CVA+EM per channel)
-    era_pos = [3 * j + 1 for j in range(n_y)]
-    cva_pos = [3 * j + 2 for j in range(n_y)]
-
-    _style_violin(
-        ax_l.violinplot(
-            [r2_era[:, j] for j in range(n_y)],
-            positions=era_pos,
-            showmedians=True,
-            widths=0.7,
-        ),
-        _ERA_COLOUR,
-    )
-    _style_violin(
-        ax_l.violinplot(
-            [r2_cva[:, j] for j in range(n_y)],
-            positions=cva_pos,
-            showmedians=True,
-            widths=0.7,
-        ),
-        _CVA_COLOUR,
-    )
-
-    ax_l.set_xticks([3 * j + 1.5 for j in range(n_y)])
-    ax_l.set_xticklabels([str(j + 1) for j in range(n_y)])
-    ax_l.set_xlabel(r"output channel $j$")
-    ax_l.set_title(r"$R^2$")
-    ax_l.axhline(0, color="0.6", lw=0.5, ls="--")
-    ax_l.legend(
-        handles=[
-            Patch(facecolor=_ERA_COLOUR, alpha=0.6, label="ERA"),
-            Patch(facecolor=_CVA_COLOUR, alpha=0.6, label="CVA+EM"),
-        ],
-        loc="best",
-    )
-
-    # Right: 2 violins for Frobenius R²
-    _style_violin(
-        ax_r.violinplot(r2f_era, positions=[1], showmedians=True, widths=0.6),
-        _ERA_COLOUR,
-    )
-    _style_violin(
-        ax_r.violinplot(r2f_cva, positions=[2], showmedians=True, widths=0.6),
-        _CVA_COLOUR,
-    )
-
-    ax_r.set_xticks([1, 2])
-    ax_r.set_xticklabels(["ERA", "CVA+EM"])
-    ax_r.set_title(r"$R^2_F$")
-    ax_r.axhline(0, color="0.6", lw=0.5, ls="--")
-
-    ax_l.set_ylim(0, 1)
-
-    return fig

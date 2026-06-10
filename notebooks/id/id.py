@@ -1,4 +1,4 @@
-"""ERA and CVA+EM system identification; comparison figure."""
+"""ERA, CVA+EM, and ERA+EM system identification; comparison figure."""
 
 from __future__ import annotations
 
@@ -13,6 +13,10 @@ from tqdm.auto import tqdm
 
 sys.path.insert(0, str((Path(__file__).parent.parent / "shared").resolve()))
 from era_utils import build_hankel, collect_markov_parameters  # noqa: F401
+from pgf_utils import notebook_github_url
+from system_estimate import SystemEstimate  # noqa: F401
+
+NOTEBOOK_GITHUB_URL = notebook_github_url(__file__)
 
 
 # ── ERA helpers ────────────────────────────────────────────────────────────────
@@ -315,46 +319,149 @@ def em_refine(
     return A, B, C, Q, R, mu0, P0, np.array(logliks)
 
 
+# ── High-level estimator functions ────────────────────────────────────────────
+
+
+def fit_era(
+    random_seed: int,
+    noise_seed: int,
+    n_u: int,
+    n_y: int,
+    n_latent: int,
+    n_markov: int,
+    n_hankel_rows: int,
+    n_hankel_cols: int,
+    n_noise_lags: int,
+    n_samples: int,
+    n_burnin: int,
+    colour: str = "#1f77b4",
+) -> SystemEstimate:
+    """Identify a system using ERA (Eigensystem Realisation Algorithm).
+
+    Collects noise-free Markov parameters via impulse subtraction to build
+    the block Hankel matrix, then estimates Q and R from the zero-input
+    output autocorrelations via Yule-Walker.
+    """
+    markov = collect_markov_parameters(random_seed, n_u, n_markov)
+    H0, H1 = build_hankel(markov, n_hankel_rows, n_hankel_cols)
+    A, B, C, _ = era(H0, H1, n_latent, n_y, n_u)
+    autocorrs = collect_autocorrelations(noise_seed, n_samples, n_noise_lags, n_burnin)
+    Q, R = estimate_noise_covariances(A, C, autocorrs)
+    return SystemEstimate(name="era", label="ERA", colour=colour, A=A, B=B, C=C, Q=Q, R=R)
+
+
+def fit_cva_em(
+    seed: int,
+    drive_seed: int,
+    n_latent: int,
+    n_samples: int,
+    n_burnin: int,
+    horizon: int,
+    max_em_iter: int,
+    em_tol: float,
+    colour: str = "#ff7f0e",
+) -> tuple[SystemEstimate, np.ndarray]:
+    """Identify a system using CVA subspace initialisation followed by EM.
+
+    Returns ``(estimate, logliks)`` where ``logliks`` is the per-iteration
+    log-likelihood trace from EM.
+    """
+    Y, U = collect_time_series(seed, n_samples, n_burnin, drive_seed)
+    y_c = Y - Y.mean(axis=0)
+    u_c = U - U.mean(axis=0)
+    A0, B0, C0, Q0, R0, _ = cva_initial_estimate(y_c, u_c, n_latent, horizon)
+    A, B, C, Q, R, _, _, logliks = em_refine(
+        y_c, u_c, A0, B0, C0, Q0, R0, n_latent, max_em_iter, em_tol
+    )
+    est = SystemEstimate(
+        name="cva_em", label="CVA+EM", colour=colour, A=A, B=B, C=C, Q=Q, R=R
+    )
+    return est, logliks
+
+
+def fit_era_em(
+    era_seed: int,
+    n_u: int,
+    n_y: int,
+    n_latent: int,
+    n_markov: int,
+    n_hankel_rows: int,
+    n_hankel_cols: int,
+    em_seed: int,
+    em_drive_seed: int,
+    n_samples: int,
+    n_burnin: int,
+    max_em_iter: int,
+    em_tol: float,
+    colour: str = "#2ca02c",
+) -> tuple[SystemEstimate, np.ndarray]:
+    """Identify using ERA dynamics (A, B, C) as initialisation for EM.
+
+    ERA provides a good initialisation for the system matrices from
+    noise-free Markov parameters.  EM then refines all matrices on a
+    held-in time series, replacing the ill-conditioned Yule-Walker
+    noise estimate with a maximum-likelihood one.
+
+    Q and R are initialised to ``0.1 * I`` and ``I`` respectively —
+    uninformative but valid positive-definite starting points.
+
+    Returns ``(estimate, logliks)`` where ``logliks`` is the per-iteration
+    log-likelihood trace from EM.
+    """
+    # ERA pass: A, B, C from Markov parameters
+    markov = collect_markov_parameters(era_seed, n_u, n_markov)
+    H0, H1 = build_hankel(markov, n_hankel_rows, n_hankel_cols)
+    A0, B0, C0, _ = era(H0, H1, n_latent, n_y, n_u)
+
+    # EM pass: time-series data, uninformative Q/R initialisation
+    Y, U = collect_time_series(em_seed, n_samples, n_burnin, em_drive_seed)
+    y_c = Y - Y.mean(axis=0)
+    u_c = U - U.mean(axis=0)
+    Q0 = 0.1 * np.eye(n_latent)
+    R0 = np.eye(n_y)
+    A, B, C, Q, R, _, _, logliks = em_refine(
+        y_c, u_c, A0, B0, C0, Q0, R0, n_latent, max_em_iter, em_tol
+    )
+    est = SystemEstimate(
+        name="era_em", label="ERA+EM", colour=colour, A=A, B=B, C=C, Q=Q, R=R
+    )
+    return est, logliks
+
+
 # ── Figure ─────────────────────────────────────────────────────────────────────
 
 
 def make_id_figure(
-    era_mats: list[np.ndarray],
-    cva_mats: list[np.ndarray],
-    n: int,
-    p: int,
-    q: int,
+    estimates: list[SystemEstimate],
     figsize: tuple[float, float],
 ) -> plt.Figure:
-    """2-row heatmap figure comparing ERA (top) and CVA+EM (bottom).
+    """One-row-per-estimator heatmap figure comparing identified system matrices.
 
-    era_mats / cva_mats : [A, B, C, Q, R] for each method.
-    Each subplot has its own symmetric colour scale (±max|entry|) shown in its title.
-    Cells are square; equal absolute gaps separate the five columns.
+    Each row shows the five matrices A, B, C, Q, R for one estimator.
+    Column headers (matrix names) appear above the top row only.  Row labels
+    (estimator names) appear to the left of the first column.
     """
     titles = ["A", "B", "C", "Q", "R"]
-    row_labels = ["ERA", "CVA+EM"]
+    n_rows = len(estimates)
+    ref_mats = [estimates[0].A, estimates[0].B, estimates[0].C, estimates[0].Q, estimates[0].R]
 
     fig_w, fig_h = figsize
 
     # Fixed margins in inches
-    top = 0.20    # clearance above top row for single-line titles
-    bottom = 0.20  # clearance below bottom row for single-line xlabels
-    vgap = 0.05   # vertical gap between the two rows (no title in gap)
-    left = 0.25   # clearance for row labels
+    top = 0.20      # clearance above top row for column titles
+    bottom = 0.10   # clearance below bottom row
+    vgap = 0.05     # vertical gap between rows
+    left = 0.25     # clearance for row labels
     right = 0.03
 
-    # Equal row height that fills the available vertical space
-    row_h = (fig_h - top - bottom - vgap) / 2
+    row_h = (fig_h - top - bottom - vgap * (n_rows - 1)) / n_rows
 
     # Subplot widths: square cells → width = row_h × ncols / nrows
-    sub_ws = [row_h * m.shape[1] / m.shape[0] for m in era_mats]
+    sub_ws = [row_h * m.shape[1] / m.shape[0] for m in ref_mats]
 
-    # Equal horizontal gap between the five subplots
-    n_gaps = len(era_mats) - 1
+    n_gaps = len(ref_mats) - 1
     h_gap = (fig_w - left - right - sum(sub_ws)) / n_gaps
 
-    # Left edge of each subplot in inches
     x_lefts: list[float] = []
     x = left
     for w in sub_ws:
@@ -362,32 +469,32 @@ def make_id_figure(
         x += w + h_gap
 
     fig = plt.figure(figsize=figsize)
-    axes = np.empty((2, len(era_mats)), dtype=object)
+    axes = np.empty((n_rows, len(ref_mats)), dtype=object)
 
-    for row in range(2):
-        y_in = bottom + (1 - row) * (row_h + vgap)
+    for row in range(n_rows):
+        y_in = bottom + (n_rows - 1 - row) * (row_h + vgap)
         for col, sub_w in enumerate(sub_ws):
-            axes[row, col] = fig.add_axes([
-                x_lefts[col] / fig_w,
-                y_in / fig_h,
-                sub_w / fig_w,
-                row_h / fig_h,
-            ])
+            axes[row, col] = fig.add_axes(
+                [
+                    x_lefts[col] / fig_w,
+                    y_in / fig_h,
+                    sub_w / fig_w,
+                    row_h / fig_h,
+                ]
+            )
 
-    for col, (era_mat, cva_mat, title) in enumerate(zip(era_mats, cva_mats, titles)):
-        for row, (mat, row_label) in enumerate(zip([era_mat, cva_mat], row_labels)):
+    for col, title in enumerate(titles):
+        for row, est in enumerate(estimates):
+            mat = [est.A, est.B, est.C, est.Q, est.R][col]
             vmax = float(np.abs(mat).max()) or 1.0
             ax = axes[row, col]
             ax.imshow(mat, cmap="RdBu_r", vmin=-vmax, vmax=vmax)
             ax.set_xticks([])
             ax.set_yticks([])
-            label = rf"$\mathbf{{{title}}}$ $[{-vmax:.2f},\,{vmax:.2f}]$"
             if row == 0:
-                ax.set_title(label)
-            else:
-                ax.set_xlabel(label, labelpad=3)
+                ax.set_title(rf"$\mathbf{{{title}}}$")
 
-    for row, row_label in enumerate(row_labels):
-        axes[row, 0].set_ylabel(row_label, rotation=90)
+    for row, est in enumerate(estimates):
+        axes[row, 0].set_ylabel(est.label, rotation=90)
 
     return fig

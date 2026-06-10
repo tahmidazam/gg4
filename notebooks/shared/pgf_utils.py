@@ -94,6 +94,36 @@ def save_pgf(fig: mpl.figure.Figure, path: Path | str, dpi: int = 150) -> None:
     print(f"Saved to {path.resolve()}")
 
 
+def notebook_github_url(source_file: str | Path) -> str:
+    """Return the GitHub blob URL for source_file.
+
+    Pass ``__file__`` from a companion ``.py`` script; ``.py`` is swapped for
+    ``.ipynb`` automatically.  The remote URL and repository root are resolved
+    via ``git``.
+    """
+    import subprocess
+    path = Path(source_file).resolve()
+    root = Path(
+        subprocess.check_output(
+            ["git", "rev-parse", "--show-toplevel"], cwd=path.parent
+        ).decode().strip()
+    ).resolve()
+    rel = path.relative_to(root)
+    if rel.suffix == ".py":
+        rel = rel.with_suffix(".ipynb")
+    remote = (
+        subprocess.check_output(
+            ["git", "remote", "get-url", "origin"], cwd=root
+        )
+        .decode()
+        .strip()
+    )
+    base = remote.removesuffix(".git").replace(
+        "git@github.com:", "https://github.com/"
+    )
+    return f"{base}/blob/main/{rel}"
+
+
 def save_caption(path: Path | str, caption: str, source_url: str) -> None:
     r"""Write a caption to a LaTeX snippet file, appending a source hyperlink.
 

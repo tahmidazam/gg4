@@ -3,9 +3,17 @@
 from __future__ import annotations
 
 import math
+import sys
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+
+sys.path.insert(0, str((Path(__file__).parent.parent / "shared").resolve()))
+
+from pgf_utils import notebook_github_url
+
+NOTEBOOK_GITHUB_URL = notebook_github_url(__file__)
 
 
 def make_singular_value_figure(
