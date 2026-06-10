@@ -9,8 +9,8 @@ from pathlib import Path
 RANDOM_SEED = 0
 
 # ── ERA / Markov parameters ───────────────────────────────────────────────────
-N_HANKEL_ROWS = 20
-N_HANKEL_COLS = 30
+N_HANKEL_ROWS = 40
+N_HANKEL_COLS = 60
 N_MARKOV = N_HANKEL_ROWS + N_HANKEL_COLS + 5
 
 # ── Simulation ────────────────────────────────────────────────────────────────
