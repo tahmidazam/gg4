@@ -7,6 +7,5 @@
       "source.organizeImports.ruff": "explicit"
     }
   },
-  "python.languageServer": "None",
-  "ty.enable": true
+  "python.languageServer": "None"
 }
