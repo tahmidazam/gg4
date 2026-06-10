@@ -60,19 +60,13 @@ def make_bode_figure(
     freqs: np.ndarray,
     H_emp: np.ndarray,
     model_responses: list[tuple[str, str, np.ndarray]],
-    display_output: int,
     figsize: tuple[float, float],
 ) -> plt.Figure:
-    """2×3 Bode comparison figure: empirical and one trace per identified model.
+    """1×N magnitude-error figure, one panel per identified model.
 
-    Layout
-    ------
-    Cols 0–1 : Bode magnitude (row 0) and phase (row 1) for output
-               ``display_output`` driven by inputs u₁ and u₂; one empirical
-               trace plus one per model per panel.
-    Col 2    : Magnitude error (row 0) and phase error (row 1) vs. the
-               empirical response, shown as mean ± 1 s.d. across all
-               n_y × n_u channels.
+    Each panel shows the absolute magnitude error (dB) between the empirical
+    and the model transfer function, as mean ± 1 s.d. across all n_y × n_u
+    channels.  Panels share a common y-axis for direct comparison.
 
     Parameters
     ----------
@@ -82,15 +76,11 @@ def make_bode_figure(
         (n_freq, n_y, n_u) empirical complex response.
     model_responses
         List of ``(label, colour, H_model)`` tuples, one per identified model.
-    display_output
-        Output (neuron) index to feature in the Bode panels.
     figsize
         (width_in, height_in).
     """
-    n_freq, q, p = H_emp.shape
-
+    n_freq = H_emp.shape[0]
     mag_emp_db = 20 * np.log10(np.maximum(np.abs(H_emp), 1e-12))
-    phase_emp_deg = np.angle(H_emp) * 180.0 / np.pi
 
     def _mag_err(H_model: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         err = np.abs(
@@ -98,105 +88,34 @@ def make_bode_figure(
         ).reshape(n_freq, -1)
         return err.mean(axis=1), err.std(axis=1)
 
-    def _phase_err(H_model: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        err = np.abs(
-            np.angle(H_emp * np.conj(H_model)) * 180.0 / np.pi
-        ).reshape(n_freq, -1)
-        return err.mean(axis=1), err.std(axis=1)
-
     xticks = [0, np.pi / 4, np.pi / 2, 3 * np.pi / 4, np.pi]
     xticklabels = [r"$0$", r"$\pi/4$", r"$\pi/2$", r"$3\pi/4$", r"$\pi$"]
     xlabel = r"$\omega$ (rad\,sample$^{-1}$)"
 
-    fig, axes = plt.subplots(2, 3, figsize=figsize, layout="constrained", sharex=True)
+    n_models = len(model_responses)
+    fig, axes = plt.subplots(
+        1, n_models, figsize=figsize, layout="constrained", sharey=True
+    )
+    if n_models == 1:
+        axes = [axes]
 
-    # Share y-axis between the two Bode columns so they are directly comparable.
-    axes[0, 1].sharey(axes[0, 0])
-    axes[1, 1].sharey(axes[1, 0])
-    axes[0, 1].tick_params(labelleft=False)
-    axes[1, 1].tick_params(labelleft=False)
-
-    input_labels = [r"input $u_1$", r"input $u_2$"]
-    for j in range(p):
-        ax_mag = axes[0, j]
-        ax_ph = axes[1, j]
-
-        ax_mag.plot(
-            freqs,
-            mag_emp_db[:, display_output, j],
-            color=_EMP_COLOUR,
-            label="Empirical",
-        )
-        ax_ph.plot(
-            freqs,
-            phase_emp_deg[:, display_output, j],
-            color=_EMP_COLOUR,
-            label="Empirical",
-        )
-
-        for label, colour, H_model in model_responses:
-            mag_db = 20 * np.log10(np.maximum(np.abs(H_model), 1e-12))
-            phase_deg = np.angle(H_model) * 180.0 / np.pi
-            ax_mag.plot(freqs, mag_db[:, display_output, j], color=colour, label=label)
-            ax_ph.plot(freqs, phase_deg[:, display_output, j], color=colour, label=label)
-
-        if j == 0:
-            ax_mag.set_ylabel(r"Magnitude (dB)")
-            ax_ph.set_ylabel(r"Phase ($^\circ$)")
-        ax_mag.set_title(
-            r"Output $y_{" + str(display_output + 1) + r"}$, " + input_labels[j]
-        )
-        ax_ph.set_xlabel(xlabel)
-
-        for ax in (ax_mag, ax_ph):
-            ax.set_xlim(0, np.pi)
-            ax.set_xticks(xticks)
-            ax.set_xticklabels(xticklabels)
-
-    ax_merr = axes[0, 2]
-    ax_perr = axes[1, 2]
-
-    for label, colour, H_model in model_responses:
+    for idx, (label, colour, H_model) in enumerate(model_responses):
+        ax = axes[idx]
         mag_mean, mag_std = _mag_err(H_model)
-        ph_mean, ph_std = _phase_err(H_model)
-
-        ax_merr.plot(freqs, mag_mean, color=colour, label=label)
-        ax_merr.fill_between(
+        ax.plot(freqs, mag_mean, color=colour)
+        ax.fill_between(
             freqs,
             np.maximum(mag_mean - mag_std, 0),
             mag_mean + mag_std,
             color=colour,
             alpha=0.25,
         )
-        ax_perr.plot(freqs, ph_mean, color=colour, label=label)
-        ax_perr.fill_between(
-            freqs,
-            np.maximum(ph_mean - ph_std, 0),
-            ph_mean + ph_std,
-            color=colour,
-            alpha=0.25,
-        )
-
-    ax_merr.set_ylabel(r"$|\Delta\,\text{mag}|$ (dB)")
-    ax_merr.set_title(r"Magnitude error (all channels)")
-
-    ax_perr.set_ylabel(r"$|\Delta\,\text{phase}|$ ($^\circ$)")
-    ax_perr.set_title(r"Phase error (all channels)")
-    ax_perr.set_xlabel(xlabel)
-
-    for ax in (ax_merr, ax_perr):
+        ax.set_title(label)
+        ax.set_xlabel(xlabel)
         ax.set_xlim(0, np.pi)
         ax.set_xticks(xticks)
         ax.set_xticklabels(xticklabels)
-
-    handles, labels = axes[0, 0].get_legend_handles_labels()
-    fig.legend(
-        handles,
-        labels,
-        loc="outside lower center",
-        ncol=len(handles),
-        frameon=False,
-        fontsize="x-small",
-    )
+        if idx == 0:
+            ax.set_ylabel(r"$|\Delta\,\text{mag}|$ (dB)")
 
     return fig

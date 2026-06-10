@@ -12,7 +12,7 @@ from scipy.linalg import solve, svd
 from tqdm.auto import tqdm
 
 sys.path.insert(0, str((Path(__file__).parent.parent / "shared").resolve()))
-from era_utils import build_hankel, collect_markov_parameters  # noqa: F401
+from era_utils import build_hankel, collect_markov_parameters, estimate_markov_ols  # noqa: F401
 from pgf_utils import notebook_github_url
 from system_estimate import SystemEstimate  # noqa: F401
 
@@ -324,6 +324,7 @@ def em_refine(
 
 def fit_era(
     random_seed: int,
+    era_drive_seed: int,
     noise_seed: int,
     n_u: int,
     n_y: int,
@@ -338,11 +339,11 @@ def fit_era(
 ) -> SystemEstimate:
     """Identify a system using ERA (Eigensystem Realisation Algorithm).
 
-    Collects noise-free Markov parameters via impulse subtraction to build
+    Estimates Markov parameters via OLS from a single time series, builds
     the block Hankel matrix, then estimates Q and R from the zero-input
     output autocorrelations via Yule-Walker.
     """
-    markov = collect_markov_parameters(random_seed, n_u, n_markov)
+    markov = estimate_markov_ols(random_seed, era_drive_seed, n_u, n_markov, n_samples, n_burnin)
     H0, H1 = build_hankel(markov, n_hankel_rows, n_hankel_cols)
     A, B, C, _ = era(H0, H1, n_latent, n_y, n_u)
     autocorrs = collect_autocorrelations(noise_seed, n_samples, n_noise_lags, n_burnin)
@@ -381,6 +382,7 @@ def fit_cva_em(
 
 def fit_era_em(
     era_seed: int,
+    era_drive_seed: int,
     n_u: int,
     n_y: int,
     n_latent: int,
@@ -397,10 +399,10 @@ def fit_era_em(
 ) -> tuple[SystemEstimate, np.ndarray]:
     """Identify using ERA dynamics (A, B, C) as initialisation for EM.
 
-    ERA provides a good initialisation for the system matrices from
-    noise-free Markov parameters.  EM then refines all matrices on a
-    held-in time series, replacing the ill-conditioned Yule-Walker
-    noise estimate with a maximum-likelihood one.
+    Markov parameters are estimated via OLS from a single time series,
+    providing the ERA initialisation for A, B, C.  EM then refines all
+    matrices on a held-in time series, replacing the Yule-Walker noise
+    estimate with a maximum-likelihood one.
 
     Q and R are initialised to ``0.1 * I`` and ``I`` respectively —
     uninformative but valid positive-definite starting points.
@@ -408,8 +410,8 @@ def fit_era_em(
     Returns ``(estimate, logliks)`` where ``logliks`` is the per-iteration
     log-likelihood trace from EM.
     """
-    # ERA pass: A, B, C from Markov parameters
-    markov = collect_markov_parameters(era_seed, n_u, n_markov)
+    # ERA pass: A, B, C from OLS-estimated Markov parameters
+    markov = estimate_markov_ols(era_seed, era_drive_seed, n_u, n_markov, n_samples, n_burnin)
     H0, H1 = build_hankel(markov, n_hankel_rows, n_hankel_cols)
     A0, B0, C0, _ = era(H0, H1, n_latent, n_y, n_u)
 

@@ -27,5 +27,17 @@ ERA_EM_PATH   = DATA_DIR / "era_em_matrices.npz"
 
 ESTIMATOR_PATHS = [ERA_PATH, CVA_EM_PATH, ERA_EM_PATH]
 
+# ERA+EM at each candidate latent dimension
+LATENT_DIMS    = [2, 4, 6]
+ERA_EM_2_PATH  = DATA_DIR / "era_em_2_matrices.npz"
+ERA_EM_4_PATH  = DATA_DIR / "era_em_4_matrices.npz"
+ERA_EM_6_PATH  = DATA_DIR / "era_em_6_matrices.npz"
+ERA_EM_PATHS   = [ERA_EM_2_PATH, ERA_EM_4_PATH, ERA_EM_6_PATH]
+ERA_EM_COLOURS = ["#1f77b4", "#ff7f0e", "#2ca02c"]
+
+# CVA+EM at the chosen latent dimension (n_x=4) for estimator comparison
+CVA_EM_4_PATH   = DATA_DIR / "cva_em_4_matrices.npz"
+CVA_EM_4_COLOUR = "#9467bd"  # purple — distinct from all ERA+EM colours
+
 FIGURES_PATH  = _REPO / "figures"
 CAPTIONS_PATH = _REPO / "captions"

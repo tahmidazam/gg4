@@ -67,48 +67,45 @@
 \begin{document}
 
 \begin{multicols*}{2}
+  \section*{Introduction}
+
+  We are provided a brain
+
   \section*{System identification}
 
-  $n_x = 6$ was read from the singular-value spectrum of the block Hankel matrix
-  (\autoref{fig:latent_dim}): six singular values exceed the relative threshold
-  $10^{-6}\sigma_1$, with the remainder at numerical zero. All models were
-  fitted with $n_x = 6$.
+  The exact Hankel singular-value spectrum, obtained via same-seed impulse
+  subtraction (a theoretical reference not physically realisable with a real
+  brain), has rank 6 (\autoref{fig:latent_dim}).
+  A physically realisable single-run OLS estimate ($N = 5{,}000$ steps) raises
+  a noise floor that obscures modes $3$--$6$ (exact values
+  $\sigma_3/\sigma_1 = 0.125$ down to $\sigma_6/\sigma_1 = 3.3\times10^{-3}$);
+  BIC model selection recovers only $n_x = 2$.
+  These modes carry little input--output energy and are near-unobservable from
+  any finite honest recording.
+  However, the downstream decoder operates on frequency-selective latent
+  activity, so a model that misrepresents the transfer function will produce
+  incorrect muscle activations regardless of one-step prediction quality.
+  ERA+EM was therefore fitted at $n_x \in \{2, 4, 6\}$ to identify the minimum
+  sufficient order.
 
-  CVA+EM was fitted first. Its noise matrices, estimated jointly with the
-  dynamics on time-series data, yielded $\operatorname{tr}(Q)/\operatorname{tr}(R)
-    = 0.077$, and one-step-ahead Kalman prediction on $N = 50$ held-out trials
-  ($T = 2000$ steps) gave median $R^2_F = 0.399$ ($84\%$ of the noise-floor
-  ceiling; \autoref{fig:obs_reconstruction}). The downstream muscle decoder maps
-  neural activity to four muscle activation rates through band-pass filters tuned
-  to specific frequencies in the decoded latent signal, so a model that
-  misrepresents the frequency response will produce systematically incorrect
-  muscle activations regardless of state-reconstruction quality. CVA+EM's mean
-  magnitude MAE was $0.086$ across all $n_u n_y = 32$ channels, concentrated
-  at low frequencies; phase MAE was $49^\circ$, distributed approximately
-  uniformly across frequency (\autoref{fig:bode}). Its transfer function
-  reproduced the per-neuron selectivity for $u_1$ but failed to recover that
-  for $u_2$ (\autoref{fig:freq_map}).
+  At $n_x = 2$ the model reproduces per-neuron frequency selectivity for $u_1$
+  but not for $u_2$ (\autoref{fig:freq_map}).
+  At $n_x = 4$ both input channels are recovered; $n_x = 6$ yields no visible
+  further improvement. ERA+EM at $n_x = 4$ was therefore selected.
+  The Bode magnitude error (\autoref{fig:bode}), computed diagnostically via
+  same-seed impulse subtraction, confirms this pattern: mean error falls
+  substantially from $n_x = 2$ to $n_x = 4$, with negligible reduction at
+  $n_x = 6$.
 
-  ERA reduced the magnitude MAE to $0.017$ and phase MAE to $5^\circ$,
-  recovering the empirical per-neuron selectivity for both $u_1$ and $u_2$.
-  Its eigenvalue spectrum
-  contains one complex conjugate pair at $\pm 0.0274$ cycles per step
-  ($|z| = 0.951$); CVA+EM's nearest pair lies at $\pm 0.0026$ cycles per step,
-  an order of magnitude lower. One-step-ahead prediction degraded to $R^2_F =
-    0.289$ ($51\%$ of ceiling). The Yule-Walker noise estimate produced
-  $\operatorname{tr}(Q) = 1666$ against $\operatorname{tr}(R) = 11.4$, a ratio
-  of $146$, so the Kalman filter received negligible information from its own
-  state prediction (\autoref{fig:id}).
-
-  Applying EM to ERA-initialised matrices (ERA+EM) corrected the noise
-  calibration without disturbing the eigenvalue structure. The process noise
-  fell to $\operatorname{tr}(Q) = 0.674$ (ratio $0.048$); the dominant complex
-  pair shifted from $0.0274$ to $0.0246$ cycles per step. Observation
-  reconstruction recovered to $R^2_F = 0.399$, matching CVA+EM
-  (\autoref{fig:obs_reconstruction}); the ordering ERA $<$ CVA+EM $\approx$
-  ERA+EM was consistent across all individual output channels. Frequency
-  accuracy (magnitude MAE $0.049$, phase $23^\circ$) remained substantially
-  better than CVA+EM (\autoref{fig:bode}). ERA+EM was adopted.
+  CVA+EM was fitted at $n_x = 4$ for comparison.
+  Its transfer function reproduces the $u_1$ selectivity but misrepresents
+  $u_2$ relative to the honest OLS estimate (rightmost column,
+  \autoref{fig:freq_map}).
+  One-step-ahead Kalman prediction on $N = 100$ held-out trials
+  ($T = 2{,}000$ steps each) confirmed ERA+EM superiority across all output
+  channels (\autoref{fig:obs_reconstruction}).
+  ERA+EM at $n_x = 4$ was adopted; the identified matrices are shown in
+  \autoref{fig:id}.
 
   \pgffigure[H]{latent_dim}
 
@@ -118,7 +115,6 @@
 
 \pgffigure{bode}
 \pgffigure{obs_reconstruction}
-
 \pgffigure{freq_map}
 
 \end{document}
