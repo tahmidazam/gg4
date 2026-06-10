@@ -109,13 +109,6 @@
   \pgffigure[H]{latent_dim}
 
   \pgffigure[H]{id}
-\end{multicols*}
-
-\pgffigure{bode}
-\pgffigure{obs_reconstruction}
-\pgffigure{freq_map}
-
-\begin{multicols}{2}
 
   \section*{Closed-loop spectral control}
 
@@ -139,9 +132,11 @@
   warm-started between successive steps.
   Controller hyperparameters were selected via a log-uniform random search
   (8 trials per controller) scored on RMS tracking error.
+\end{multicols*}
 
-  \pgffigure*{spectral_control}
-
-\end{multicols}
+\pgffigure{bode}
+\pgffigure{obs_reconstruction}
+\pgffigure{freq_map}
+\pgffigure{spectral_control}
 
 \end{document}

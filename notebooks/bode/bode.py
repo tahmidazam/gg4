@@ -62,11 +62,10 @@ def make_bode_figure(
     model_responses: list[tuple[str, str, np.ndarray]],
     figsize: tuple[float, float],
 ) -> plt.Figure:
-    """1×N magnitude-error figure, one panel per identified model.
+    """2×N figure: magnitude error (top) and phase error (bottom), one column per model.
 
-    Each panel shows the absolute magnitude error (dB) between the empirical
-    and the model transfer function, as mean ± 1 s.d. across all n_y × n_u
-    channels.  Panels share a common y-axis for direct comparison.
+    Each panel shows mean ± 1 s.d. of the absolute error across all n_y × n_u
+    channels.  Rows share a common y-axis for direct comparison within each row.
 
     Parameters
     ----------
@@ -88,34 +87,58 @@ def make_bode_figure(
         ).reshape(n_freq, -1)
         return err.mean(axis=1), err.std(axis=1)
 
+    def _phase_err(H_model: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        # Wrapped phase difference via arg(H_model · conj(H_emp)), in radians
+        err = np.abs(np.angle(H_model * np.conj(H_emp))).reshape(n_freq, -1)
+        return err.mean(axis=1), err.std(axis=1)
+
     xticks = [0, np.pi / 4, np.pi / 2, 3 * np.pi / 4, np.pi]
     xticklabels = [r"$0$", r"$\pi/4$", r"$\pi/2$", r"$3\pi/4$", r"$\pi$"]
     xlabel = r"$\omega$ (rad\,sample$^{-1}$)"
 
     n_models = len(model_responses)
-    fig, axes = plt.subplots(
-        1, n_models, figsize=figsize, layout="constrained", sharey=True
+    fig, axes_2d = plt.subplots(
+        2, n_models, figsize=figsize, layout="constrained", sharey="row"
     )
+    # Normalise to shape (2, n_models) regardless of n_models
+    axes_2d = np.atleast_2d(axes_2d)
     if n_models == 1:
-        axes = [axes]
+        axes_2d = axes_2d.reshape(2, 1)
 
     for idx, (label, colour, H_model) in enumerate(model_responses):
-        ax = axes[idx]
+        ax_mag = axes_2d[0, idx]
+        ax_phase = axes_2d[1, idx]
+
         mag_mean, mag_std = _mag_err(H_model)
-        ax.plot(freqs, mag_mean, color=colour)
-        ax.fill_between(
+        ax_mag.plot(freqs, mag_mean, color=colour)
+        ax_mag.fill_between(
             freqs,
             np.maximum(mag_mean - mag_std, 0),
             mag_mean + mag_std,
             color=colour,
             alpha=0.25,
         )
-        ax.set_title(label)
-        ax.set_xlabel(xlabel)
-        ax.set_xlim(0, np.pi)
-        ax.set_xticks(xticks)
-        ax.set_xticklabels(xticklabels)
+        ax_mag.set_title(label)
+        ax_mag.set_xlim(0, np.pi)
+        ax_mag.set_xticks(xticks)
+        ax_mag.set_xticklabels([])
         if idx == 0:
-            ax.set_ylabel(r"$|\Delta\,\text{mag}|$ (dB)")
+            ax_mag.set_ylabel(r"$|\Delta\,\text{mag}|$ (dB)")
+
+        phase_mean, phase_std = _phase_err(H_model)
+        ax_phase.plot(freqs, phase_mean, color=colour)
+        ax_phase.fill_between(
+            freqs,
+            np.maximum(phase_mean - phase_std, 0),
+            phase_mean + phase_std,
+            color=colour,
+            alpha=0.25,
+        )
+        ax_phase.set_xlabel(xlabel)
+        ax_phase.set_xlim(0, np.pi)
+        ax_phase.set_xticks(xticks)
+        ax_phase.set_xticklabels(xticklabels)
+        if idx == 0:
+            ax_phase.set_ylabel(r"$|\Delta\,\text{phase}|$ (rad)")
 
     return fig

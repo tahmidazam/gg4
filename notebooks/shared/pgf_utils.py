@@ -83,6 +83,9 @@ def apply_figure_style(fig: mpl.figure.Figure) -> None:
         if legend is not None:
             for text in legend.get_texts():
                 text.set_fontsize("x-small")
+    for legend in fig.legends:
+        for text in legend.get_texts():
+            text.set_fontsize("x-small")
 
 
 def save_pgf(fig: mpl.figure.Figure, path: Path | str, dpi: int = 150) -> None:

@@ -197,7 +197,6 @@ def make_obs_reconstruction_figure(
         loc="outside lower center",
         ncol=n_methods,
         frameon=False,
-        fontsize="x-small",
     )
 
     return fig

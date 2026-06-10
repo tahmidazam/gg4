@@ -659,7 +659,6 @@ def make_spectral_control_figure(
         ncol=len(legend_handles),
         bbox_to_anchor=(0.5, 0.01),
         frameon=False,
-        fontsize="small",
     )
 
     return fig

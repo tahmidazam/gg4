@@ -39,5 +39,12 @@ ERA_EM_COLOURS = ["#1f77b4", "#ff7f0e", "#2ca02c"]
 CVA_EM_4_PATH   = DATA_DIR / "cva_em_4_matrices.npz"
 CVA_EM_4_COLOUR = "#9467bd"  # purple — distinct from all ERA+EM colours
 
+# Closed-loop controller colours — distinct from all ERA+EM and CVA+EM colours
+CONTROLLER_COLOURS: dict[str, str] = {
+    "LQG": "#17becf",  # tab:cyan
+    "LQI": "#d62728",  # tab:red
+    "MPC": "#8c564b",  # tab:brown
+}
+
 FIGURES_PATH  = _REPO / "figures"
 CAPTIONS_PATH = _REPO / "captions"

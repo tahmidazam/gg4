@@ -92,5 +92,5 @@ def make_singular_value_figure(
     ax.set_xlabel(r"index $i$")
     ax.set_ylabel(r"$\sigma_i / \sigma_1$")
     ax.set_xticks(indices)
-    fig.legend(loc="outside lower center", ncol=2, frameon=False, fontsize="small")
+    fig.legend(loc="outside lower center", ncol=2, frameon=False)
     return fig
