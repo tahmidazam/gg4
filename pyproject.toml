@@ -25,5 +25,32 @@ exclude = ["provided"]
 [tool.ty.src]
 exclude = ["provided"]
 
+# Notebooks add their own directory, notebooks/shared, sibling notebook dirs,
+# and provided/ to sys.path at runtime. ty cannot see those runtime insertions,
+# so the import search paths are declared here for static resolution.
 [tool.ty.environment]
-extra-paths = ["notebooks/shared", "provided"]
+extra-paths = [
+    "notebooks/shared",
+    "provided",
+    "notebooks/bode",
+    "notebooks/cartesian_control_ablation_band_scale",
+    "notebooks/cartesian_control_ablation_blend",
+    "notebooks/cartesian_control_ablation_control_mode",
+    "notebooks/cartesian_control_ablation_elbow",
+    "notebooks/cartesian_control_constrained_heatmap",
+    "notebooks/cartesian_control_effort",
+    "notebooks/cartesian_control_errors",
+    "notebooks/cartesian_control_heatmap",
+    "notebooks/cartesian_control_robustness",
+    "notebooks/cartesian_control_sweep",
+    "notebooks/cartesian_control_trajectory",
+    "notebooks/freq_map",
+    "notebooks/gain_matrix",
+    "notebooks/id",
+    "notebooks/latent_dim",
+    "notebooks/muscle_selection_freq_sweep",
+    "notebooks/neural_correlates",
+    "notebooks/obs_reconstruction",
+    "notebooks/spectral_control",
+    "notebooks/spectral_control_metrics",
+]

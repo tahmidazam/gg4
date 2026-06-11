@@ -21,6 +21,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import matplotlib as mpl
+import matplotlib.figure  # noqa: F401  (ensures mpl.figure.Figure resolves)
 
 # A4 page content dimensions with 1-inch margins (inches)
 A4_W_IN: float = 6.26
@@ -72,8 +73,8 @@ def apply_figure_style(fig: mpl.figure.Figure) -> None:
         title_text = ax.get_title()
         ax.set_title(title_text, loc="left", fontsize="small")
         ax.set_title("", loc="center")
-        ax.xaxis.label.set_size("small")
-        ax.yaxis.label.set_size("small")
+        ax.xaxis.label.set_fontsize("small")
+        ax.yaxis.label.set_fontsize("small")
         ax.tick_params(axis="both", labelsize="small")
         if not ax.images:
             ax.minorticks_on()

@@ -11,6 +11,7 @@ from __future__ import annotations
 import sys
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import numpy as np
 from scipy.linalg import solve_discrete_are
@@ -19,6 +20,10 @@ from scipy.optimize import lsq_linear, minimize
 sys.path.insert(0, str((Path(__file__).parent.parent / "shared").resolve()))
 from pgf_utils import notebook_github_url
 from system_estimate import SystemEstimate
+
+if TYPE_CHECKING:
+    import pandas as pd
+    from matplotlib.figure import Figure
 
 NOTEBOOK_GITHUB_URL = notebook_github_url(__file__)
 
@@ -500,7 +505,7 @@ def make_spectral_control_figure(
     controller_colours: dict[str, str] | None = None,
     figsize: tuple[float, float] = (12.0, 9.0),
     n_fft: int = 512,
-) -> object:
+) -> Figure:
     """Four-row figure for LQG / LQI / MPC spectral control.
 
     Row 1: physical population mean (y_bar only) vs uncontrolled baseline and
@@ -590,7 +595,7 @@ def make_spectral_control_figure(
         ax_obs.imshow(
             Y.T,
             aspect="auto", origin="lower", interpolation="nearest",
-            extent=[0, T, 0.5, n_y + 0.5],
+            extent=(0, T, 0.5, n_y + 0.5),
             cmap="viridis", rasterized=True,
         )
         ax_obs.set_yticks([1, 8, n_y])
@@ -603,7 +608,7 @@ def make_spectral_control_figure(
         ax_u.imshow(
             res["U"].T,
             aspect="auto", origin="lower", interpolation="nearest",
-            extent=[0, T, -0.5, n_u - 0.5],
+            extent=(0, T, -0.5, n_u - 0.5),
             vmin=0, vmax=1, cmap="viridis", rasterized=True,
         )
         ax_u.set_yticks(range(n_u))
@@ -638,7 +643,8 @@ def make_spectral_control_figure(
 
     # ── Single shared vertical colorbar on the far right ─────────────────────
     # Positioned to span the frequency section height exactly.
-    cax = fig.add_axes([R + 0.01, 0.20, 0.015, 0.12])
+    cax = fig.add_axes((R + 0.01, 0.20, 0.015, 0.12))
+    assert im_last is not None  # at least one column was plotted above
     fig.colorbar(im_last, cax=cax, label="amplitude")
 
     # ── Legend below the figure ───────────────────────────────────────────────
@@ -671,7 +677,7 @@ def spectral_metrics(
     results: dict[str, dict],
     target: SpectralTarget,
     n_fft: int = 512,
-) -> object:
+) -> pd.DataFrame:
     """RMS amplitude error and off-target power for each controller."""
     import pandas as pd
 

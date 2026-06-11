@@ -14,6 +14,7 @@ from pathlib import Path
 
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.layout_engine import ConstrainedLayoutEngine
 
 sys.path.insert(0, str((Path(__file__).parent.parent / "shared").resolve()))
 from pgf_utils import notebook_github_url
@@ -348,7 +349,9 @@ def make_muscle_selection_freq_sweep_figure(
 
     fig, axes = plt.subplots(2, 1, figsize=figsize, layout="constrained", sharex=True)
     # Reserve top margin for band labels placed at y=1.02 (above axes[0])
-    fig.get_layout_engine().set(rect=(0, 0, 1, 0.93))
+    engine = fig.get_layout_engine()
+    assert isinstance(engine, ConstrainedLayoutEngine)
+    engine.set(rect=(0, 0, 1, 0.93))
 
     for ax, joint_idx, ylabel in [
         (axes[0], 0, r"$\sum \Delta\theta_s$ (rad)"),

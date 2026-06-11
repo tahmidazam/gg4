@@ -148,7 +148,7 @@
 \vspace{1em}
 
 \begin{multicols*}{2}
-  \section*{Introduction}
+  \section*{Problem statement}
 
   We are given a \Brain and a \ac{bmi}, which controls an arm. We are tasked
   with controlling the position of the hand at the end of the arm. The \Brain
@@ -472,6 +472,10 @@
   with a null hypothesis that all group means are equal. A metric is plotted
   only if the \ac{anova} p-value satisfies $p \le 0.05$.
 
+  \pgffigure[H]{cartesian_control_ablation_band_scale}
+  \pgffigure[H]{cartesian_control_ablation_control_mode}
+  \pgffigure[H]{cartesian_control_ablation_elbow}
+
   Only the effort significantly varied with the elbow band scale
   (\autoref{fig:cartesian_control_ablation_band_scale}). We find that open-loop
   control reduced the final distance, had less control effort, and slightly
@@ -483,19 +487,41 @@
   controller in the areas reachable by an anatomically correct quadrant.
   However, in regions hard to access by such an arm (i.e., behind and towards
   the centre of the body, or negative-negative quadrant), its performance is
-  poor, just like a real human.
+  poor, just like a real human. This is visualised in the heatmap in
+  \autoref{fig:cartesian_control_constrained_heatmap}, where if the human were
+  imagined have their right shoulder joint at the origin, the poor final
+  distances are behind the body, where a physiological elbow cannot reach.
 
-
-
-  \pgffigure[H]{cartesian_control_ablation_band_scale}
-  \pgffigure[H]{cartesian_control_ablation_control_mode}
-  \pgffigure[H]{cartesian_control_ablation_elbow}
+  \pgffigure[H]{cartesian_control_constrained_heatmap}
 
   \subsection*{Robustness to noise}
 
+  Evaluating control metrics derived from a single seed to different seeds
+  produced distributions illustrated in
+  \autoref{fig:cartesian_control_robustness}. These distributions are wide with
+  large standard deviations, indicative of poor seed-to-seed transferability of
+  estimations.
+
   \pgffigure[H]{cartesian_control_robustness}
 
-  \section*{Limitations and comparison to group solutions}
+  \section*{Limitations and next steps}
+
+  Limitations begin with a lack of evidence honestly recovering the true
+  $n_x=6$, and the difficulty in reconstructing the frequency response of $u_2$
+  to the same degree as $u_1$.
+
+  The largest trade-off in the control strategy is controller interpretabilty,
+  trajectory feasibility, and distance for the price of a poor
+  time-to-threshold. This trade-off is established by the sequential focus on
+  shoulder or elbow control, and limited attempts to control both joints at a
+  time. In addition, the velocity damping to remove shoulder oscillations slows
+  response time further. This decision was intuitively made on the basis of a
+  shared power drive across selected muscles. Hyperparameter optimisation did
+  not improve the headline final distance metric, it only made trajectories more
+  feasible, highlighting this tradeoff further. We also hand-pick the scoring
+  methods and each component's weights. This trade-off is mnaageable, as it is
+  more convenient to have a predictable, more accurate prosthetic that is slow
+  over an erratic, trajectory-inefficient one.
 
   \section*{Conclusion}
 

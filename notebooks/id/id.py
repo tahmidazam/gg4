@@ -477,12 +477,12 @@ def make_id_figure(
         y_in = bottom + (n_rows - 1 - row) * (row_h + vgap)
         for col, sub_w in enumerate(sub_ws):
             axes[row, col] = fig.add_axes(
-                [
+                (
                     x_lefts[col] / fig_w,
                     y_in / fig_h,
                     sub_w / fig_w,
                     row_h / fig_h,
-                ]
+                )
             )
 
     for col, title in enumerate(titles):

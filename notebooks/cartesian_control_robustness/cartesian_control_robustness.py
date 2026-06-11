@@ -91,7 +91,9 @@ def make_robustness_figure(
         vals = np.array(per_seed_vals[k])
 
         vp = ax.violinplot([vals], positions=[0], showmedians=True)
-        for body in vp["bodies"]:
+        # matplotlib's stub mistypes "bodies" as a scalar Collection; at runtime
+        # it is a list of PolyCollection.
+        for body in vp["bodies"]:  # ty: ignore[not-iterable]
             body.set_facecolor(colour)
             body.set_alpha(0.45)
         for part in ("cmedians", "cmins", "cmaxes", "cbars"):

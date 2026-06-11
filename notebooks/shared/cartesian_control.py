@@ -28,6 +28,7 @@ Sector metric:
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any, cast
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -230,7 +231,8 @@ class CartesianLQIController:
 
         self._update_spectral_target(target, current_pos)
         if self._use_lqi:
-            result = self._lqi(observations, self._spectral_target)  # type: ignore[arg-type]
+            # _spectral_target is a dynamically-imported SpectralTarget instance.
+            result = self._lqi(observations, self._spectral_target)  # ty: ignore[invalid-argument-type]
         else:
             t = len(observations)
             u0 = self._open_loop_offset
@@ -629,9 +631,12 @@ def sweep_params(
             raw[res["trial_idx"]] = res
             pbar.update(1)
 
-    sweep_results = []
+    sweep_results: list[dict[str, Any]] = []
     for ci, cfg in enumerate(configs):
-        trial_results = [raw[ci * n_targets + ti] for ti in range(n_targets)]  # type: ignore[index]
+        # Every slot was filled by the parallel loop above; narrow away `None`.
+        trial_results = cast(
+            "list[dict]", [raw[ci * n_targets + ti] for ti in range(n_targets)]
+        )
         score = _sweep_score(trial_results, T)
         sweep_results.append({
             "config": cfg,
@@ -1095,7 +1100,8 @@ def run_cartesian_control(
         for i, tgt in enumerate(targets)
     ]
 
-    results: list[dict] = [None] * n_trials  # type: ignore[list-item]
+    # Pre-allocate; every slot is filled by the parallel loop below.
+    results: list[dict] = cast("list[dict]", [None] * n_trials)
     with tqdm(total=n_trials, desc="Evaluating", unit="trial") as pbar:
         for res in Parallel(n_jobs=-1, return_as="generator_unordered")(
             delayed(_eval_trial)(*job) for job in jobs

@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+from typing import cast
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -217,7 +218,7 @@ def calibrate_gains(
         best_ci = 0
         best_score = -np.inf
         for ci in range(n_ch):
-            sh_g, el_g = responses[ki][ci]  # type: ignore[misc]
+            sh_g, el_g = cast("tuple[float, float]", responses[ki][ci])
             gains = [sh_g, el_g]
             primary = gains[primary_joint]
             secondary = gains[1 - primary_joint]
@@ -230,7 +231,7 @@ def calibrate_gains(
                 best_score = score
                 best_ci = ci
 
-        sh_g, el_g = responses[ki][best_ci]  # type: ignore[misc]
+        sh_g, el_g = cast("tuple[float, float]", responses[ki][best_ci])
         M[0, ki] = sh_g
         M[1, ki] = el_g
         best_channels.append(best_ci)

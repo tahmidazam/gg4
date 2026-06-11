@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+from typing import Any, cast
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -136,9 +137,10 @@ def _run_subset(
     for res in Parallel(n_jobs=-1, return_as="generator_unordered")(
         delayed(_eval_trial)(*job) for job in jobs
     ):
-        results[res["trial_idx"]] = res  # type: ignore[index]
+        results[res["trial_idx"]] = res
 
-    return results  # type: ignore[return-value]
+    # Every slot was filled by the parallel loop above; narrow away `None`.
+    return cast("list[dict]", results)
 
 
 def make_sweep_figure(
@@ -237,7 +239,7 @@ def make_sweep_figure(
     # ── Bottom: bar charts ────────────────────────────────────────────────────
     c_def = ERA_EM_COLOURS[0]
     c_opt = CONTROLLER_COLOURS["LQI"]
-    bar_kw = dict(width=0.5, alpha=0.8)
+    bar_kw: dict[str, Any] = dict(width=0.5, alpha=0.8)
 
     def _nice_top(x: float) -> float:
         if not (x > 0):
