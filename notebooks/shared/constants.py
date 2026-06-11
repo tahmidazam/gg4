@@ -61,7 +61,8 @@ ARM_LINK: float = 30.0   # cm, both arm links equal
 MAX_DELTA: float = 0.25  # rad, IK branch-change continuity guard
 
 CARTESIAN_CONTROL_CACHE_PATH   = DATA_DIR / "cartesian_control_cache.npz"
-CARTESIAN_CONTROL_RESULTS_PATH = DATA_DIR / "cartesian_control_results.pkl"
+CARTESIAN_CONTROL_RESULTS_PATH         = DATA_DIR / "cartesian_control_results.pkl"
+CARTESIAN_CONTROL_OPTIMAL_RESULTS_PATH = DATA_DIR / "cartesian_control_optimal_results.pkl"
 
 # ── Cartesian control evaluation ──────────────────────────────────────────────
 CC_T               = 1000       # steps per trial
@@ -71,7 +72,7 @@ CC_TARGET_R_MAX    = 55.0       # cm, outer radius of target grid
 CC_N_R             = 3          # radial rings
 CC_N_THETA         = 8          # angular targets per ring
 CC_DIST_THRESH     = 10.0       # cm, threshold for time-to-target metric
-CC_DEMO_IDX        = 0          # trial index used in trajectory panels
+CC_DEMO_IDX        = 7          # trial index used in trajectory panels
 CC_DEMO_SEED       = 0          # Brain seed for all evaluation trials
 
 # Controller parameters
@@ -100,3 +101,11 @@ CC_CONSTRAIN_ELBOW  = False
 CC_USE_LQI          = False
 CC_BAND_CHANNELS    = None       # list[tuple[float, float]] | None
 CC_OPEN_LOOP_OFFSET = 0.5
+
+# ── Cartesian control sweep / robustness / ablation ───────────────────────────
+CC_N_SEEDS              = 20
+CC_BO_STUDY_PATH        = DATA_DIR / "cc_bo_study.db"
+CC_SWEEP_RESULTS_PATH   = DATA_DIR / "cc_sweep_results.pkl"
+CC_OPTIMAL_PARAMS_PATH  = DATA_DIR / "cc_optimal_params.json"
+CC_ROBUST_RESULTS_DIR   = DATA_DIR / "cc_robust"
+CC_ABLATION_RESULTS_DIR = DATA_DIR / "cc_ablation"

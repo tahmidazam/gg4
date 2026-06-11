@@ -34,7 +34,7 @@ def make_heatmap_figure(
     span    = 2 * arm_link
     theta_ws = np.linspace(0, 2 * np.pi, 300)
     cmap    = LinearSegmentedColormap.from_list("gr", ["#2ca02c", "#d62728"])
-    norm    = Normalize(vmin=0, vmax=max(20.0, final_dist.max()))
+    norm    = Normalize(vmin=0, vmax=120)
 
     fig, ax = plt.subplots(figsize=figsize, layout="constrained")
 
@@ -49,7 +49,7 @@ def make_heatmap_figure(
     for xi, yi, di in zip(tgt_x, tgt_y, final_dist):
         ax.text(xi, yi - 3.5, f"{di:.1f}", ha="center", va="top",
                 fontsize=6, color="0.2", zorder=4)
-    fig.colorbar(sc, ax=ax, label="Final distance (cm)", fraction=0.046, pad=0.04)
+    fig.colorbar(sc, ax=ax, label="Final distance (cm)", orientation="vertical", fraction=0.046, pad=0.04)
     ax.scatter(0, 0, s=50, color="k", zorder=6)
     ax.set_aspect("equal")
     ax.set_xlabel("$x$ (cm)")

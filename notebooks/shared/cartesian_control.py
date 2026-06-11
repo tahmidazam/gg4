@@ -27,18 +27,10 @@ Sector metric:
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 
 import numpy as np
 import matplotlib.pyplot as plt
-
-sys.path.insert(0, str((Path(__file__).parent.parent / "shared").resolve()))
-from pgf_utils import notebook_github_url
-
-NOTEBOOK_GITHUB_URL = notebook_github_url(__file__)
-
-_BAND_NAMES = ["S$+$", "S$-$", "E$+$", "E$-$"]
 
 
 # ── Sector geometry ───────────────────────────────────────────────────────────
@@ -315,12 +307,6 @@ class CartesianLQIController:
                     self._phase_switches.append((self._step, "elbow", "shoulder"))
                     self._seq_phase = "shoulder"
                     self._phase_step_count = 0
-                    print(
-                        f"[seq] elbow→shoulder  step={self._step}"
-                        f"  dsh={dsh:+.4f}  del={del_:+.4f}"
-                        + (f"  {reason}" if reason else "")
-                        + ("  [elbow_done]" if self._elbow_done else "")
-                    )
 
             elif self._seq_phase == "shoulder":
                 el_alpha = self._el_hold_alpha if self._elbow_done else self._seq_blend_alpha
@@ -331,11 +317,6 @@ class CartesianLQIController:
                         self._phase_switches.append((self._step, "shoulder", "elbow"))
                         self._seq_phase = "elbow"
                         self._phase_step_count = 0
-                        print(
-                            f"[seq] shoulder→elbow  step={self._step}"
-                            f"  dsh={dsh:+.4f}  del={del_:+.4f}"
-                            + ("  [timeout]" if timed_out else "")
-                        )
 
             self._phase_step_count += 1
 
@@ -399,7 +380,6 @@ def _eval_trial(
     for _p in [
         str((_Path(__file__).parent.parent.parent / "provided").resolve()),
         str((_Path(__file__).parent.parent / "shared").resolve()),
-        str((_Path(__file__).parent.parent / "cartesian_control").resolve()),
     ]:
         if _p not in _sys.path:
             _sys.path.insert(0, _p)
@@ -476,12 +456,15 @@ def _eval_trial(
     time_to_thresh = int(hits[0]) if len(hits) > 0 else -1
 
     th_lo, th_hi = compute_sector_angles(start_pos, target)
-    sector_flags = np.array([
-        not point_in_sector(hand_traj[t, 0], hand_traj[t, 1], th_lo, th_hi)
+    in_short_arc = np.array([
+        point_in_sector(hand_traj[t, 0], hand_traj[t, 1], th_lo, th_hi)
         for t in range(T)
     ])
-    steps_outside_sector = int(sector_flags.sum())
-    frac_in_sector = 1.0 - steps_outside_sector / T
+    n_in_short = int(in_short_arc.sum())
+    # Credit whichever arc direction (CW or CCW from start to target) the hand follows more.
+    n_in_sector          = max(n_in_short, T - n_in_short)
+    steps_outside_sector = T - n_in_sector
+    frac_in_sector       = n_in_sector / T
 
     U = np.stack(u_list)
     effort = float(np.sum(U ** 2))
@@ -492,6 +475,14 @@ def _eval_trial(
     el_err = np.abs(np.arctan2(
         np.sin(el_traj - tgt_el), np.cos(el_traj - tgt_el)
     ))
+
+    # Rotational distance: peak angular excursion from the start angle in the dominant
+    # direction. Brief reversals are ignored — only the furthest point reached counts.
+    _unwrapped      = np.unwrap(np.arctan2(hand_traj[:, 1], hand_traj[:, 0]))
+    _start_angle    = _unwrapped[0]
+    _ccw_excursion  = max(0.0, float(_unwrapped.max()) - _start_angle)
+    _cw_excursion   = max(0.0, _start_angle - float(_unwrapped.min()))
+    rotational_dist = max(_ccw_excursion, _cw_excursion)
 
     return {
         "trial_idx": trial_idx,
@@ -508,6 +499,7 @@ def _eval_trial(
         "frac_in_sector": frac_in_sector,
         "sector_angles": (th_lo, th_hi),
         "phase_switches": ctrl.phase_switches,
+        "rotational_dist": rotational_dist,
     }
 
 
@@ -519,12 +511,21 @@ def _sweep_score(results: list[dict], T: int) -> float:
 
     Balances final distance to target, proportion of time outside the optimal
     sector, and penalises trials that never reached the threshold.
+    Rotational excess beyond one full revolution (2π rad) is heavily penalised
+    so the optimiser cannot benefit from looping trajectories.
     """
-    final_dist = np.array([r["dist"][-1] for r in results])
-    frac_in = np.array([r["frac_in_sector"] for r in results])
-    reached = np.array([r["time_to_thresh"] >= 0 for r in results], dtype=float)
-    # Lower is better: penalise distance and sector violations, reward reaching
-    return float(final_dist.mean() - 20.0 * frac_in.mean() - 10.0 * reached.mean())
+    final_dist   = np.array([r["dist"][-1] for r in results])
+    frac_in      = np.array([r["frac_in_sector"] for r in results])
+    reached      = np.array([r["time_to_thresh"] >= 0 for r in results], dtype=float)
+    rot_dist     = np.array([r["rotational_dist"] for r in results])
+    # Any rotation beyond one full revolution is penalised; below the threshold costs nothing.
+    excess_rot   = np.maximum(0.0, rot_dist - 2.0 * np.pi)
+    return float(
+        final_dist.mean()
+        - 20.0 * frac_in.mean()
+        - 10.0 * reached.mean()
+        + 50.0 * excess_rot.mean()
+    )
 
 
 def sweep_params(
@@ -720,282 +721,86 @@ def print_metrics(
     print(f"Mean effort           : {effort.mean():.1f} ± {effort.std():.1f} a.u.")
 
 
-# ── Figure ────────────────────────────────────────────────────────────────────
+# ── Metric computation ────────────────────────────────────────────────────────
 
 
-def make_cartesian_control_figure(
+def compute_metrics(
     results: list[dict],
-    targets: list[tuple[float, float]],
     T: int,
-    arm_link: float,
     dist_thresh: float,
-    n_r: int,
-    n_theta: int,
-    r_grid: np.ndarray,
-    demo_idx: int = 0,
-    n_snapshots: int = 6,
     ss_start_frac: float = 2 / 3,
-    figsize: tuple[float, float] = (16.0, 9.0),
-) -> plt.Figure:
-    """Seven-panel evaluation figure.
+) -> dict[str, np.ndarray]:
+    """Per-trial metric arrays from a completed evaluation.
 
-    Left column: time series of distance to target, shoulder error, elbow error.
-    Right column (2×2):
-      - Final distance scatter over target grid
-      - Example trajectory with optimal sector and arm snapshots
-      - Control effort by target radius
-      - Summary statistics text panel
+    Each value is a 1-D array of length ``len(results)``.
+
+    Keys
+    ----
+    ``"final_dist"``           : final distance to target (cm)
+    ``"ss_dist"``              : mean distance over the steady-state window
+    ``"time_to_thresh"``       : step at which dist < dist_thresh; −1 if never
+    ``"reached"``              : 1.0 if time_to_thresh ≥ 0, else 0.0
+    ``"final_sh_err_deg"``     : shoulder error at last step (degrees)
+    ``"final_el_err_deg"``     : elbow error at last step (degrees)
+    ``"effort"``               : total control effort (sum of squared inputs)
+    ``"frac_in_sector"``       : proportion of steps inside the optimal sector
+    ``"steps_outside_sector"`` : number of steps outside the optimal sector
+    ``"rotational_dist"``      : total absolute angular displacement of the hand (rad)
+    ``"path_length"``          : total Cartesian distance travelled by the hand (cm)
     """
-    from matplotlib.colors import LinearSegmentedColormap, Normalize
-
-    t_axis = np.arange(T)
-    theta_ws = np.linspace(0, 2 * np.pi, 300)
-    span = 2 * arm_link
-
-    all_dist = np.stack([r["dist"] for r in results])
-    all_sh_err = np.stack([np.degrees(r["sh_err"]) for r in results])
-    all_el_err = np.stack([np.degrees(r["el_err"]) for r in results])
-    all_effort = np.array([r["effort"] for r in results])
-    final_dist = all_dist[:, -1]
-    frac_in = np.array([r["frac_in_sector"] for r in results])
-
-    dist_mean, dist_std = all_dist.mean(0), all_dist.std(0)
-    sh_mean, sh_std = all_sh_err.mean(0), all_sh_err.std(0)
-    el_mean, el_std = all_el_err.mean(0), all_el_err.std(0)
-
     ss_start = int(ss_start_frac * T)
-    ttt = np.array([r["time_to_thresh"] for r in results], dtype=float)
-    ttt[ttt < 0] = np.nan
-    n_reached = int(np.sum(~np.isnan(ttt)))
-    ss_dist = all_dist[:, ss_start:].mean(axis=1)
-    final_sh_err_deg = all_sh_err[:, -1]
-    final_el_err_deg = all_el_err[:, -1]
-    stat_records = [
-        ("Time to threshold",      "steps", np.nanmean(ttt),         np.nanstd(ttt)),
-        ("Steady-state distance",  "cm",    ss_dist.mean(),           ss_dist.std()),
-        ("Final distance",         "cm",    final_dist.mean(),        final_dist.std()),
-        ("Final shoulder error",   "deg",   final_sh_err_deg.mean(),  final_sh_err_deg.std()),
-        ("Final elbow error",      "deg",   final_el_err_deg.mean(),  final_el_err_deg.std()),
-        ("Control effort",         "a.u.",  all_effort.mean(),        all_effort.std()),
-        ("Proportion in sector",   "",      frac_in.mean(),           frac_in.std()),
-    ]
 
-    fig = plt.figure(figsize=figsize, layout="constrained")
-    gs_outer = fig.add_gridspec(1, 2)
-    gs_left  = gs_outer[0, 0].subgridspec(3, 1, hspace=0.3)
-    gs_right = gs_outer[0, 1].subgridspec(2, 2)
+    final_dist           = np.array([r["dist"][-1] for r in results])
+    ss_dist              = np.array([r["dist"][ss_start:].mean() for r in results])
+    time_to_thresh       = np.array([r["time_to_thresh"] for r in results], dtype=float)
+    reached              = (time_to_thresh >= 0).astype(float)
+    final_sh_err_deg     = np.degrees([r["sh_err"][-1] for r in results])
+    final_el_err_deg     = np.degrees([r["el_err"][-1] for r in results])
+    effort               = np.array([r["effort"] for r in results])
+    frac_in_sector       = np.array([r["frac_in_sector"] for r in results])
+    steps_outside_sector = np.array([r["steps_outside_sector"] for r in results], dtype=float)
+    rotational_dist      = np.array([r["rotational_dist"] for r in results])
+    path_length          = np.array([
+        float(np.sum(np.linalg.norm(np.diff(r["hand_traj"], axis=0), axis=1)))
+        for r in results
+    ])
 
-    ax_dist = fig.add_subplot(gs_left[0])
-    ax_sh   = fig.add_subplot(gs_left[1], sharex=ax_dist)
-    ax_el   = fig.add_subplot(gs_left[2], sharex=ax_dist)
-    ax_hm   = fig.add_subplot(gs_right[0, 0])
-    ax_traj = fig.add_subplot(gs_right[0, 1])
-    ax_eff  = fig.add_subplot(gs_right[1, 0])
-    ax_stat = fig.add_subplot(gs_right[1, 1])
+    return {
+        "final_dist":           final_dist,
+        "ss_dist":              ss_dist,
+        "time_to_thresh":       time_to_thresh,
+        "reached":              reached,
+        "final_sh_err_deg":     final_sh_err_deg,
+        "final_el_err_deg":     final_el_err_deg,
+        "effort":               effort,
+        "frac_in_sector":       frac_in_sector,
+        "steps_outside_sector": steps_outside_sector,
+        "rotational_dist":      rotational_dist,
+        "path_length":          path_length,
+    }
 
-    col_dist = "#1f77b4"
-    col_sh = "#ff7f0e"
-    col_el = "#2ca02c"
-    _col_el_phase = "#a8d8ea"   # light blue  — E+/E− active
-    _col_sh_phase = "#f9c784"   # light amber — S+/S− active
 
-    # ── Phase spans (demo trial only, drawn first so they sit behind data) ────
-    import matplotlib.patches as _mpatches
-    _phase_axs = [ax_dist, ax_sh, ax_el]
-    _demo_switches = results[demo_idx].get("phase_switches", [])
-    _prev_step, _cur_phase = 0, "elbow"
-    _phase_patches: dict[str, object] = {}
-    for _sw_step, _from_ph, _to_ph in sorted(_demo_switches, key=lambda x: x[0]):
-        _col = _col_el_phase if _cur_phase == "elbow" else _col_sh_phase
-        _lbl = r"E$+$/E$-$ active" if _cur_phase == "elbow" else r"S$+$/S$-$ active"
-        for _ax in _phase_axs:
-            _ax.axvspan(_prev_step, _sw_step, alpha=0.28, color=_col, zorder=0, lw=0)
-        _phase_patches.setdefault(
-            _lbl, _mpatches.Patch(facecolor=_col, alpha=0.45, label=_lbl, edgecolor="none")
-        )
-        _prev_step, _cur_phase = _sw_step, _to_ph
-    _col = _col_el_phase if _cur_phase == "elbow" else _col_sh_phase
-    _lbl = r"E$+$/E$-$ active" if _cur_phase == "elbow" else r"S$+$/S$-$ active"
-    for _ax in _phase_axs:
-        _ax.axvspan(_prev_step, T, alpha=0.28, color=_col, zorder=0, lw=0)
-    _phase_patches.setdefault(
-        _lbl, _mpatches.Patch(facecolor=_col, alpha=0.45, label=_lbl, edgecolor="none")
-    )
+def aggregate_seed_metrics(
+    per_seed_results: list[list[dict]],
+    T: int,
+    dist_thresh: float,
+    ss_start_frac: float = 2 / 3,
+) -> dict[str, np.ndarray]:
+    """Per-seed mean metric arrays from a multi-seed evaluation.
 
-    # ── Distance to target ────────────────────────────────────────────────────
-    for d in all_dist:
-        ax_dist.plot(t_axis, d, color=col_dist, alpha=0.12, lw=0.5)
-    ax_dist.plot(t_axis, dist_mean, color=col_dist, lw=1.8, label="Mean")
-    ax_dist.fill_between(
-        t_axis, dist_mean - dist_std, dist_mean + dist_std,
-        color=col_dist, alpha=0.18, label=r"$\pm$1\,SD",
-    )
-    ax_dist.axhline(dist_thresh, color="crimson", ls="--", lw=1.0,
-                    label=f"{dist_thresh:.0f} cm threshold")
-    ax_dist.set_ylabel("Distance to\ntarget (cm)")
-    ax_dist.set_ylim(bottom=0)
-    _dist_h, _dist_l = ax_dist.get_legend_handles_labels()
-    ax_dist.legend(
-        handles=_dist_h + list(_phase_patches.values()),
-        labels=_dist_l + list(_phase_patches.keys()),
-        loc="best", ncol=3, frameon=False,
-    )
-    plt.setp(ax_dist.get_xticklabels(), visible=False)
+    Calls ``compute_metrics`` on each seed's results list and stacks the
+    per-trial means into a 1-D array of length ``n_seeds``.  The returned
+    dict has the same keys as ``compute_metrics`` with values of shape
+    ``(n_seeds,)``.  Use ``values.mean()`` / ``values.std()`` for grand-mean
+    ± SD across seeds.
+    """
+    seed_means: list[dict[str, float]] = []
+    for results in per_seed_results:
+        m = compute_metrics(results, T, dist_thresh, ss_start_frac)
+        seed_means.append({k: float(v.mean()) for k, v in m.items()})
 
-    # ── Shoulder error ────────────────────────────────────────────────────────
-    for d in all_sh_err:
-        ax_sh.plot(t_axis, d, color=col_sh, alpha=0.12, lw=0.5)
-    ax_sh.plot(t_axis, sh_mean, color=col_sh, lw=1.8, label="Mean")
-    ax_sh.fill_between(
-        t_axis, sh_mean - sh_std, sh_mean + sh_std,
-        color=col_sh, alpha=0.18, label=r"$\pm$1\,SD",
-    )
-    ax_sh.set_ylabel(r"Shoulder error ($^\circ$)")
-    ax_sh.set_ylim(bottom=0)
-    ax_sh.legend(loc="best", ncol=2, frameon=False)
-    plt.setp(ax_sh.get_xticklabels(), visible=False)
-
-    # ── Elbow error ───────────────────────────────────────────────────────────
-    for d in all_el_err:
-        ax_el.plot(t_axis, d, color=col_el, alpha=0.12, lw=0.5)
-    ax_el.plot(t_axis, el_mean, color=col_el, lw=1.8, label="Mean")
-    ax_el.fill_between(
-        t_axis, el_mean - el_std, el_mean + el_std,
-        color=col_el, alpha=0.18, label=r"$\pm$1\,SD",
-    )
-    ax_el.set_ylabel(r"Elbow error ($^\circ$)")
-    ax_el.set_ylim(bottom=0)
-    ax_el.set_xlabel("Time (steps)")
-    ax_el.legend(loc="best", ncol=2, frameon=False)
-
-    # ── Final distance scatter ────────────────────────────────────────────────
-    cmap_gr = LinearSegmentedColormap.from_list("gr", ["#2ca02c", "#d62728"])
-    norm_hm = Normalize(vmin=0, vmax=max(20.0, final_dist.max()))
-    tgt_x = np.array([t[0] for t in targets])
-    tgt_y = np.array([t[1] for t in targets])
-    ax_hm.plot(
-        span * np.cos(theta_ws), span * np.sin(theta_ws),
-        color="grey", lw=0.8, alpha=0.5, zorder=1,
-    )
-    sc = ax_hm.scatter(
-        tgt_x, tgt_y, c=final_dist, cmap=cmap_gr, norm=norm_hm,
-        s=150, zorder=3, linewidths=0.8, edgecolors="white",
-    )
-    for xi_, yi_, di in zip(tgt_x, tgt_y, final_dist):
-        ax_hm.text(xi_, yi_ - 3.5, f"{di:.1f}", ha="center", va="top",
-                   fontsize=6, color="0.2", zorder=4)
-    fig.colorbar(sc, ax=ax_hm, label="Final distance (cm)", fraction=0.046, pad=0.04)
-    ax_hm.scatter(0, 0, s=50, color="k", zorder=6)
-    ax_hm.set_aspect("equal")
-    ax_hm.set_xlabel("$x$ (cm)")
-    ax_hm.set_ylabel("$y$ (cm)")
-    ax_hm.set_title("Final distance to target")
-
-    # ── Example trajectory with optimal sector ────────────────────────────────
-    demo = results[demo_idx]
-    demo_hand = demo["hand_traj"]
-    demo_sh = demo["sh_traj"]
-    demo_el = demo["el_traj"]
-    demo_target = targets[demo_idx]
-    th_lo, th_hi = demo["sector_angles"]
-
-    sector_angles = np.linspace(th_lo, th_hi, 200)
-    r_sector = span
-    sx = np.concatenate([[0.0], r_sector * np.cos(sector_angles), [0.0]])
-    sy = np.concatenate([[0.0], r_sector * np.sin(sector_angles), [0.0]])
-    ax_traj.fill(sx, sy, color="#d4edda", alpha=0.55, zorder=0, label="Optimal sector")
-    ax_traj.plot(
-        np.append(r_sector * np.cos(sector_angles), r_sector * np.cos(sector_angles[0])),
-        np.append(r_sector * np.sin(sector_angles), r_sector * np.sin(sector_angles[0])),
-        color="#28a745", lw=0.8, alpha=0.6, zorder=1,
-    )
-
-    ax_traj.fill(
-        span * np.cos(theta_ws), span * np.sin(theta_ws),
-        color="grey", alpha=0.05, zorder=0,
-    )
-    cmap_traj = LinearSegmentedColormap.from_list("gr", ["#2ca02c", "#d62728"])
-    traj_vmin, traj_vmax = 0, 120
-    norm_traj = Normalize(vmin=traj_vmin, vmax=traj_vmax)
-    n_steps = demo_hand.shape[0]
-    t_steps = np.arange(n_steps, dtype=float)
-    sc_traj = ax_traj.scatter(
-        demo_hand[:, 0], demo_hand[:, 1],
-        c=t_steps, cmap=cmap_traj, norm=norm_traj, s=4, zorder=3, linewidths=0,
-    )
-    fig.colorbar(sc_traj, ax=ax_traj, label="Step", fraction=0.046, pad=0.04)
-
-    snap_idx = np.round(np.linspace(0, n_steps - 1, n_snapshots)).astype(int)
-    for k, idx in enumerate(snap_idx):
-        sh_k, el_k = demo_sh[idx], demo_el[idx]
-        ex = arm_link * np.cos(sh_k)
-        ey = arm_link * np.sin(sh_k)
-        hx = ex + arm_link * np.cos(sh_k + el_k)
-        hy = ey + arm_link * np.sin(sh_k + el_k)
-        frac = k / max(n_snapshots - 1, 1)
-        alpha_k = 0.25 + 0.55 * frac
-        color_k = cmap_traj(norm_traj(float(idx)))
-        ax_traj.plot([0, ex, hx], [0, ey, hy], color=color_k, lw=1.2,
-                     alpha=alpha_k, zorder=2)
-
-    ax_traj.scatter(0, 0, s=50, color="k", zorder=6)
-    ax_traj.scatter(*demo_hand[0], s=80, marker="o",
-                    facecolors="white", edgecolors="#1f77b4", lw=1.5, zorder=5,
-                    label="Start")
-    ax_traj.scatter(*demo_hand[-1], s=80, marker="s",
-                    facecolors="white", edgecolors="#2ca02c", lw=1.5, zorder=5,
-                    label="End")
-    ax_traj.scatter(*demo_target, s=180, marker="*", color="red", zorder=5,
-                    label="Target")
-    ax_traj.set_aspect("equal")
-    ax_traj.set_xlabel("$x$ (cm)")
-    ax_traj.set_ylabel("$y$ (cm)")
-    ax_traj.set_title(f"Example trajectory (trial {demo_idx})")
-    ax_traj.legend(loc="best", ncol=4, frameon=False)
-
-    # ── Control effort by radius ──────────────────────────────────────────────
-    effort_by_r = [
-        all_effort[ri * n_theta: (ri + 1) * n_theta]
-        for ri in range(n_r)
-    ]
-    r_labels = [f"{r:.0f}" for r in r_grid]
-    positions = np.arange(n_r)
-    ax_eff.bar(
-        positions,
-        [e.mean() for e in effort_by_r],
-        yerr=[e.std() for e in effort_by_r],
-        color="#9467bd", alpha=0.75, capsize=5, width=0.5,
-        error_kw={"lw": 1.2, "capthick": 1.2},
-    )
-    for ri, eff in enumerate(effort_by_r):
-        ax_eff.scatter(
-            np.full(len(eff), ri), eff, color="k", s=25, alpha=0.6, zorder=3,
-        )
-    ax_eff.set_xticks(positions)
-    ax_eff.set_xticklabels(r_labels)
-    ax_eff.set_xlabel("Target radius (cm)")
-    ax_eff.set_ylabel("Control effort (a.u.)")
-    ax_eff.set_title("Control effort by target radius")
-
-    # ── Summary statistics ────────────────────────────────────────────────────
-    ax_stat.axis("off")
-    ax_stat.set_title("Summary statistics")
-    lines = [
-        f"{name}:\n  {mean:.2f} ± {std:.2f}{(' ' + unit) if unit else ''}"
-        for name, unit, mean, std in stat_records
-    ]
-    lines[0] = (
-        f"Time to threshold:\n"
-        f"  {np.nanmean(ttt):.2f} ± {np.nanstd(ttt):.2f} steps"
-        f"  ({n_reached}/{len(results)} reached)"
-    )
-    ax_stat.text(
-        0.05, 0.95, "\n".join(lines),
-        transform=ax_stat.transAxes,
-        fontsize=8.5, va="top", ha="left", linespacing=1.7,
-    )
-
-    return fig
+    keys = list(seed_means[0].keys())
+    return {k: np.array([sm[k] for sm in seed_means]) for k in keys}
 
 
 # ── Debug trajectory viewer ───────────────────────────────────────────────────

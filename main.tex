@@ -40,6 +40,10 @@
 \graphicspath{{figures/}}
 \providecommand{\mathdefault}[1]{#1}
 
+% Draft flag: \renderfiguresfalse = fast (placeholder boxes), \renderfigurestrue = full render
+\newif\ifrenderfigures
+\renderfigurestrue
+
 % Units
 \usepackage{siunitx}
 
@@ -66,7 +70,9 @@
 \DeclareAcronym{lqg}{short=LQG,long=Linear Quadratic Gaussian}
 \DeclareAcronym{lqi}{short=LQI,long=Linear Quadratic Integral}
 \DeclareAcronym{mpc}{short=MPC,long=Model Predictive Control}
-
+\DeclareAcronym{tpe}{short=TPE,long=Tree-structured Parzen Estimator}
+\DeclareAcronym{bo}{short=BO,long=Bayesian Optimisation}
+\DeclareAcronym{anova}{short=ANOVA, long=Analysis of Variance}
 
 % \pgffigure{<key>} inserts a float figure from figures/<key>.pgf, captions it
 % from captions/<key>.tex, and labels it fig:<key>.
@@ -74,15 +80,23 @@
   \IfBooleanTF{#1}{%
     \begin{figure*}[#2]%
       \centering%
-      \input{figures/#3.pgf}%
-      \caption{\protect\input{captions/#3.tex}}%
+      \ifrenderfigures%
+        \input{figures/#3.pgf}%
+      \else%
+        \fbox{\texttt{figures/\detokenize{#3}.pgf}}%
+      \fi%
+      % \caption{\protect\input{captions/#3.tex}}%
       \label{fig:#3}%
     \end{figure*}%
   }{%
     \begin{figure}[#2]%
       \centering%
-      \input{figures/#3.pgf}%
-      \caption{\protect\input{captions/#3.tex}}%
+      \ifrenderfigures%
+        \input{figures/#3.pgf}%
+      \else%
+        \fbox{\texttt{figures/\detokenize{#3}.pgf}}%
+      \fi%
+      % \caption{\protect\input{captions/#3.tex}}%
       \label{fig:#3}%
     \end{figure}%
   }%
@@ -94,16 +108,16 @@
 \NewDocumentCommand{\latextable}{s O{htbp} m}{%
   \IfBooleanTF{#1}{%
     \begin{table*}[#2]%
-      \centering%
+      \centering\small%
       \input{tables/#3.tex}%
-      \caption{\protect\input{captions/#3_table.tex}}%
+      % \caption{\protect\input{captions/#3_table.tex}}%
       \label{tab:#3}%
     \end{table*}%
   }{%
     \begin{table}[#2]%
-      \centering%
+      \centering\small%
       \input{tables/#3.tex}%
-      \caption{\protect\input{captions/#3_table.tex}}%
+      % \caption{\protect\input{captions/#3_table.tex}}%
       \label{tab:#3}%
     \end{table}%
   }%
@@ -300,12 +314,35 @@
   time. This constrains our control strategy to be a sequential one, directing
   one muscle at a time.
 
+  \subsection*{Evaluating hand control}
+
+  We aim to minimise the final distance to target, the Euclidean distance
+  between the hand and the target at the end of a trial. We define a success
+  threshold at 10. We aim to maximise the reach rate, the fraction of trials
+  that reach within this success threshold. This metric captures reliability
+  across diverse targets in the reachable area: a controller with low mean final
+  distance distance but occasional failures is not practically useful for a
+  prosthetic. We minimise the time to threshold, the number of steps until the
+  hand first enters the distance success threshold: a useful prosthetic should
+  converge in reasonable time to provide utility. We maximise the sector
+  fraction, the proportion of time the hand spends in the optimal sector: an
+  angular wedge containing the target and the start position. We minimise the
+  rotational distance, the total angle swept by the hand trajectory over the
+  trial. These two metrics penalise inefficient trajectories (e.g. looping
+  behaviours), which would be inconvenient and unpredictable for a prosthetic.
+  We minimise the control effort, the sum of square brain inputs, in an effort
+  to make inputs more interpretable and efficient.
+
   \subsection*{Muscle selection}
 
   We sweep frequencies for both inputs and measure shoulder and elbow angles,
   determined by inverse kinematics to find the specific frequencies that excite
   specific muscles. We empirically recover the frequency bands defined in the
-  \BMI weights using a single seed, shown in TABLE and FIGURE.
+  \BMI weights using a single seed, shown in
+  \autoref{tab:muscle_selection_freq_sweep} and
+  \autoref{fig:muscle_selection_freq_sweep}.
+
+  \latextable*{muscle_selection_freq_sweep}
 
   \pgffigure[H]{muscle_selection_freq_sweep}
 
@@ -313,12 +350,7 @@
   muscles that require higher frequencies. This may be due to the low-pass
   action of the \Brain. We also observe cross-talk for elbow movements but not
   shoulder movements: the shoulder can be moved independently of the elbow, but
-  the elbow cannot be moved indepedently of the shoulder. This motivates a
-  control strategy that first achieves the correct elbow angle, then disregards
-  control over the elbow, and uses S$+$ and S$-$ only to correct the shoulder
-  angle. In addition, during the initial correction angle phase, we should
-  alternate between correcting the elbow angle and correcting the shoulder
-  angle, as attempting to move the elbow moves the shoulder.
+  the elbow cannot be moved indepedently of the shoulder.
 
   We then ask whether neural observations carry a muscle-specific spatial code:
   if different neurons respond preferentially at each selection frequency,
@@ -327,27 +359,102 @@
   normalise the per-neuron profile by its own neuron-mean
   (\autoref{fig:neural_correlates}).
 
-  \pgffigure[H]{neural_correlates}
+  \pgffigure*{neural_correlates}
 
-  Profiles are broadly consistent at the
-  two shoulder frequencies and diverge at higher elbow frequencies, where the
-  low-pass action of the \Brain attenuates neurons differentially
-  (\autoref{fig:freq_map}). Muscle identity is therefore encoded temporally
-  by the oscillation frequency of $x_1$, not spatially by which neurons
-  are active. No differential neural weighting offers selectivity beyond
-  what the \BMI's bandpass filters already provide, reinforcing the
-  sequential, frequency-based control strategy described above.
+  Muscle identity is therefore encoded temporally by the oscillation frequency
+  of $x_1$, not spatially by which neurons are active (\autoref{fig:freq_map}).
+  No differential weighting of neurones in the spectral control target offers
+  muscle selectivity beyond what the \BMI's bandpass filters already provide.
+  This justifies controlling the population mean at the spectral target.
 
+  \subsection*{Control method}
 
+  The core pipeline is a 3 step process. First is band-identification, an
+  open-loop sinusoidal sweep over both brain input channels, with cumulative
+  shoulder and elbow displacement (inferred via inverse kinematics) recorded per
+  frequency. The four bands are identified, which correspond to S$+$, S$-$,
+  E$+$, and E$-$. The next step is gain calibration, where a short-closed loop
+  \LQI trial at each band frequency targets a sinusoidal spectral setpoint, and
+  mean joint angle per unit amplitude forms a $2\times4$ gain matrix where rows
+  are joints, and columns are bands. The third is the main control loop, where
+  inverse kinematics converts cartesian target to a joint-angle goals, band
+  amplitudes are solved from the gain matrix and an \LQI controller optionally
+  closes the loop on the population mean.
 
+  The elbow to shoulder cross-talk motivates a control strategy that first
+  achieves the correct elbow angle, then reduces control gain over the elbow, and
+  focuses on using S$+$ and S$-$ to correct the shoulder angle. In addition, during the
+  initial correction angle phase, we should alternate between correcting the
+  elbow angle and correcting the shoulder angle, as attempting to move the elbow
+  moves the shoulder. To mitigate cross-talk further, we drive the shoulder in
+  the opposite direction of the expected cross-talk.
 
+  We always begin with targeting elbow error first. Each elbow/shoulder phase
+  has a minimum length and maximum length. In addition, when controlling the
+  elbow, there is a maximum shoulder drift, such that if upon moving the elbow
+  the shoulder drifts too much, we switch to controlling the shoulder. We also
+  provide per-band gain multipliers applied to the gain matrix values before the
+  solve, to further tune individual band aggressiveness.
 
+  \subsection*{Hyperparameter optimisation}
 
-  % \section{Muscle selection}
+  With so many model parameters defined by the complex sequential controller
+  design, we turn to hyperparameter optimisation to search the parameter space
+  for an optimal solution. We use \ac{tpe} via the \texttt{optuna} library to
+  run two phases: first, a large set of \ac{bo} trials; then the top trials are
+  re-evaluted on a full target grid, and the best is selected. We define an objective score:
+  \begin{equation*}
+    \mathcal{S} = \overline{d}_{\mathrm{final}}
+    - 20\,\overline{f}_{\mathrm{sector}}
+    - 10\,\overline{p}_{\mathrm{reached}}
+    + 50\,\overline{\max\!\left(0,\;\theta_{\mathrm{rot}} - 2\pi\right)}
+  \end{equation*}
+  This directly penalises final distance, inefficient trajectories, and rewards
+  successful reach rate to create a more interpretable optimisation process.
+  \autoref{fig:cartesian_control_sweep} shows how the optimisation process did
+  not reduce final distance or the time to threshold, but instead made the
+  trajectory more sensible, increasing the sector fraction and reducing the
+  rotation.
 
-  % \pgffigure[H]{muscle_selection_freq_sweep}
-  % 
+  \pgffigure[H]{cartesian_control_sweep}
+
+  \subsection*{Results}
+
+  The most optimal controller's metrics are summarised in
+  \autoref{tab:cartesian_control_sweep}, its losses over time are plotted in
+  \autoref{fig:fig:cartesian_control_errors}, an example trajectory is
+  illustrated in \autoref{fig:cartesian_control_trajectory}, and a heatmap of
+  targets and the final distances to them is drawn in
+  \autoref{fig:cartesian_control_heatmap}.
+
+  \latextable*{cartesian_control_sweep}
+  \pgffigure[H]{cartesian_control_errors}
+  \pgffigure*{cartesian_control_trajectory}
+  \pgffigure[H]{cartesian_control_heatmap}
+
+  \subsection*{Sensitivity to model parameters}
+
+  We carry out ablation analysis, varying one parameter of the controller in
+  isolation and holding everything else fixed to measure how sensitive
+  performance is to that parameter. Hyperparameters under analysis include: the
+  elbow band scale, how much the elbow gain is turned down relative to the
+  shoulder gain \autoref{fig:cartesian_control_ablation_band_scale}; the blend
+  factor, how much we compensate for cross-talk by driving the shoulder in the
+  opposite direction \autoref{fig:cartesian_control_ablation_blend}; closed-loop
+  vs open-loop control \autoref{fig:cartesian_control_ablation_control_mode};
+  and whether we constrain the elbow to a maximum of \SI{180}{\degree} or not
+  \autoref{fig:cartesian_control_ablation_elbow}. We filter the metrics using a
+  one-way \ac{anova}, run independently for each metric across all conditions,
+  with a null hypothesis that all group means are equal. A metric is plotted
+  only if the \ac{anova} p-value satisfies $p \le 0.05$.
+
+  \pgffigure[H]{cartesian_control_ablation_band_scale}
+  \pgffigure[H]{cartesian_control_ablation_blend}
+  \pgffigure[H]{cartesian_control_ablation_control_mode}
+  \pgffigure[H]{cartesian_control_ablation_elbow}
 \end{multicols*}
+
+
 
 % \pgffigure{bode}
 % 

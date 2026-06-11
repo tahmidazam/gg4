@@ -49,10 +49,11 @@ def make_trajectory_figure(
     phase_arr[prev_step:] = 1.0 if cur_phase == "shoulder" else 0.0
 
     fig, (ax_time, ax_sh_ph, ax_el_ph) = plt.subplots(
-        1, 3, figsize=figsize, layout="constrained"
+        1, 3, figsize=figsize, layout="constrained",
+        sharex=True, sharey=True,
     )
 
-    def _base(ax: plt.Axes) -> None:
+    def _base(ax: plt.Axes, show_ylabel: bool = False) -> None:
         ax.scatter(0, 0, s=40, color="k", zorder=6)
         ax.scatter(
             *hand[0], s=70, marker="o",
@@ -68,8 +69,8 @@ def make_trajectory_figure(
         )
         ax.set_aspect("equal")
         ax.set_xlabel("$x$ (cm)")
-        ax.set_ylabel("$y$ (cm)")
-        ax.legend(loc="best", ncol=3, frameon=False)
+        if show_ylabel:
+            ax.set_ylabel("$y$ (cm)")
 
     # ── Panel 1: time colouring ───────────────────────────────────────────────
     t_norm = np.linspace(0.0, 1.0, T)
@@ -77,7 +78,10 @@ def make_trajectory_figure(
         hand[:, 0], hand[:, 1], c=t_norm,
         cmap="plasma", s=6, linewidths=0, zorder=3,
     )
-    fig.colorbar(sc0, ax=ax_time, label="Normalised time", fraction=0.046, pad=0.04)
+    fig.colorbar(
+        sc0, ax=ax_time, label="Normalised time",
+        location="bottom", fraction=0.05, pad=0.04,
+    )
 
     snap_idx   = np.round(np.linspace(0, T - 1, n_snapshots)).astype(int)
     cmap_traj  = plt.get_cmap("plasma")
@@ -92,27 +96,36 @@ def make_trajectory_figure(
             color=cmap_traj(frac), lw=1.0, alpha=0.4 + 0.5 * frac,
         )
 
-    _base(ax_time)
-    ax_time.set_title(f"Trial {index} — time")
+    _base(ax_time, show_ylabel=True)
+    ax_time.set_title(f"Trial {index}, time")
 
     # ── Panel 2: shoulder phase active ────────────────────────────────────────
     sc1 = ax_sh_ph.scatter(
         hand[:, 0], hand[:, 1], c=phase_arr,
         cmap=_SH_CMAP, vmin=0, vmax=1, s=6, linewidths=0, zorder=3,
     )
-    cb1 = fig.colorbar(sc1, ax=ax_sh_ph, fraction=0.046, pad=0.04, ticks=[0.25, 0.75])
-    cb1.ax.set_yticklabels(["Elbow\nphase", "Shoulder\nphase"])
+    cb1 = fig.colorbar(
+        sc1, ax=ax_sh_ph,
+        location="bottom", fraction=0.05, pad=0.04, ticks=[0.25, 0.75],
+    )
+    cb1.ax.set_xticklabels(["Elbow phase", "Shoulder phase"])
     _base(ax_sh_ph)
-    ax_sh_ph.set_title(f"Trial {index} — shoulder phase")
+    ax_sh_ph.set_title(f"Trial {index}, shoulder phase")
 
     # ── Panel 3: elbow phase active ───────────────────────────────────────────
     sc2 = ax_el_ph.scatter(
         hand[:, 0], hand[:, 1], c=1.0 - phase_arr,
         cmap=_EL_CMAP, vmin=0, vmax=1, s=6, linewidths=0, zorder=3,
     )
-    cb2 = fig.colorbar(sc2, ax=ax_el_ph, fraction=0.046, pad=0.04, ticks=[0.25, 0.75])
-    cb2.ax.set_yticklabels(["Shoulder\nphase", "Elbow\nphase"])
+    cb2 = fig.colorbar(
+        sc2, ax=ax_el_ph,
+        location="bottom", fraction=0.05, pad=0.04, ticks=[0.25, 0.75],
+    )
+    cb2.ax.set_xticklabels(["Shoulder phase", "Elbow phase"])
     _base(ax_el_ph)
-    ax_el_ph.set_title(f"Trial {index} — elbow phase")
+    ax_el_ph.set_title(f"Trial {index}, elbow phase")
+
+    handles, labels = ax_time.get_legend_handles_labels()
+    fig.legend(handles, labels, loc="outside left center", ncol=1, frameon=False)
 
     return fig
