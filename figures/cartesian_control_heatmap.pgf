@@ -30,9 +30,9 @@
 %%   \usepackage{amsmath}\usepackage{amssymb}\renewcommand{\familydefault}{\sfdefault}\usepackage{sfmath}
 %%   \ifdefined\pdftexversion\else  % non-pdftex case.
 %%     \usepackage{fontspec}
-%%     \setmainfont{DejaVuSerif.ttf}[Path=\detokenize{/Users/tahmidazam/Documents/gg4/.venv/lib/python3.12/site-packages/matplotlib/mpl-data/fonts/ttf/}]
-%%     \setsansfont{DejaVuSans.ttf}[Path=\detokenize{/Users/tahmidazam/Documents/gg4/.venv/lib/python3.12/site-packages/matplotlib/mpl-data/fonts/ttf/}]
-%%     \setmonofont{DejaVuSansMono.ttf}[Path=\detokenize{/Users/tahmidazam/Documents/gg4/.venv/lib/python3.12/site-packages/matplotlib/mpl-data/fonts/ttf/}]
+%%     \setmainfont{DejaVuSerif.ttf}[Path=\detokenize{/Users/tahmidazam/Developer/gg4/.venv/lib/python3.12/site-packages/matplotlib/mpl-data/fonts/ttf/}]
+%%     \setsansfont{DejaVuSans.ttf}[Path=\detokenize{/Users/tahmidazam/Developer/gg4/.venv/lib/python3.12/site-packages/matplotlib/mpl-data/fonts/ttf/}]
+%%     \setmonofont{DejaVuSansMono.ttf}[Path=\detokenize{/Users/tahmidazam/Developer/gg4/.venv/lib/python3.12/site-packages/matplotlib/mpl-data/fonts/ttf/}]
 %%   \fi
 %%   \makeatletter\@ifpackageloaded{underscore}{}{\usepackage[strings]{underscore}}\makeatother
 %%

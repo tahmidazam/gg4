@@ -453,7 +453,7 @@
 \definecolor{textcolor}{rgb}{0.000000,0.000000,0.000000}%
 \pgfsetstrokecolor{textcolor}%
 \pgfsetfillcolor{textcolor}%
-\pgftext[x=0.348772in,y=2.297497in,left,base]{\color{textcolor}{\sffamily\fontsize{8.330000}{9.996000}\selectfont\catcode`\^=\active\def^{\ifmmode\sp\else\^{}\fi}\catcode`\%=\active\def%{\%}Final dist.\ (cm)}}%
+\pgftext[x=0.348772in,y=2.297497in,left,base]{\color{textcolor}{\sffamily\fontsize{8.330000}{9.996000}\selectfont\catcode`\^=\active\def^{\ifmmode\sp\else\^{}\fi}\catcode`\%=\active\def%{\%}Dist. (cm)}}%
 \end{pgfscope}%
 \begin{pgfscope}%
 \pgfpathrectangle{\pgfqpoint{0.348772in}{1.468394in}}{\pgfqpoint{0.644147in}{0.745769in}}%
@@ -986,7 +986,7 @@
 \definecolor{textcolor}{rgb}{0.000000,0.000000,0.000000}%
 \pgfsetstrokecolor{textcolor}%
 \pgfsetfillcolor{textcolor}%
-\pgftext[x=1.442389in,y=2.297497in,left,base]{\color{textcolor}{\sffamily\fontsize{8.330000}{9.996000}\selectfont\catcode`\^=\active\def^{\ifmmode\sp\else\^{}\fi}\catcode`\%=\active\def%{\%}Sector frac.}}%
+\pgftext[x=1.442389in,y=2.297497in,left,base]{\color{textcolor}{\sffamily\fontsize{8.330000}{9.996000}\selectfont\catcode`\^=\active\def^{\ifmmode\sp\else\^{}\fi}\catcode`\%=\active\def%{\%}Sect. frac.}}%
 \end{pgfscope}%
 \begin{pgfscope}%
 \pgfpathrectangle{\pgfqpoint{1.442389in}{1.468394in}}{\pgfqpoint{0.644147in}{0.745769in}}%
@@ -1519,7 +1519,7 @@
 \definecolor{textcolor}{rgb}{0.000000,0.000000,0.000000}%
 \pgfsetstrokecolor{textcolor}%
 \pgfsetfillcolor{textcolor}%
-\pgftext[x=2.444183in,y=2.297497in,left,base]{\color{textcolor}{\sffamily\fontsize{8.330000}{9.996000}\selectfont\catcode`\^=\active\def^{\ifmmode\sp\else\^{}\fi}\catcode`\%=\active\def%{\%}Time-to-thresh.\ (steps)}}%
+\pgftext[x=2.444183in,y=2.297497in,left,base]{\color{textcolor}{\sffamily\fontsize{8.330000}{9.996000}\selectfont\catcode`\^=\active\def^{\ifmmode\sp\else\^{}\fi}\catcode`\%=\active\def%{\%}Time-to-thr.}}%
 \end{pgfscope}%
 \begin{pgfscope}%
 \pgfpathrectangle{\pgfqpoint{2.444183in}{1.468394in}}{\pgfqpoint{0.644147in}{0.745769in}}%
@@ -2585,7 +2585,7 @@
 \definecolor{textcolor}{rgb}{0.000000,0.000000,0.000000}%
 \pgfsetstrokecolor{textcolor}%
 \pgfsetfillcolor{textcolor}%
-\pgftext[x=1.442389in,y=1.241535in,left,base]{\color{textcolor}{\sffamily\fontsize{8.330000}{9.996000}\selectfont\catcode`\^=\active\def^{\ifmmode\sp\else\^{}\fi}\catcode`\%=\active\def%{\%}Rotational dist.\ (rad)}}%
+\pgftext[x=1.442389in,y=1.241535in,left,base]{\color{textcolor}{\sffamily\fontsize{8.330000}{9.996000}\selectfont\catcode`\^=\active\def^{\ifmmode\sp\else\^{}\fi}\catcode`\%=\active\def%{\%}Rot. (rad)}}%
 \end{pgfscope}%
 \begin{pgfscope}%
 \pgfpathrectangle{\pgfqpoint{1.442389in}{0.412433in}}{\pgfqpoint{0.644147in}{0.745769in}}%
@@ -3118,7 +3118,7 @@
 \definecolor{textcolor}{rgb}{0.000000,0.000000,0.000000}%
 \pgfsetstrokecolor{textcolor}%
 \pgfsetfillcolor{textcolor}%
-\pgftext[x=2.444183in,y=1.241535in,left,base]{\color{textcolor}{\sffamily\fontsize{8.330000}{9.996000}\selectfont\catcode`\^=\active\def^{\ifmmode\sp\else\^{}\fi}\catcode`\%=\active\def%{\%}Path length (cm)}}%
+\pgftext[x=2.444183in,y=1.241535in,left,base]{\color{textcolor}{\sffamily\fontsize{8.330000}{9.996000}\selectfont\catcode`\^=\active\def^{\ifmmode\sp\else\^{}\fi}\catcode`\%=\active\def%{\%}Path (cm)}}%
 \end{pgfscope}%
 \begin{pgfscope}%
 \pgfpathrectangle{\pgfqpoint{2.444183in}{0.412433in}}{\pgfqpoint{0.644147in}{0.745769in}}%

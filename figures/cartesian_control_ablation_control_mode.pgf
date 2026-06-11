@@ -453,7 +453,7 @@
 \definecolor{textcolor}{rgb}{0.000000,0.000000,0.000000}%
 \pgfsetstrokecolor{textcolor}%
 \pgfsetfillcolor{textcolor}%
-\pgftext[x=0.348772in,y=1.231597in,left,base]{\color{textcolor}{\sffamily\fontsize{8.330000}{9.996000}\selectfont\catcode`\^=\active\def^{\ifmmode\sp\else\^{}\fi}\catcode`\%=\active\def%{\%}Final dist.\ (cm)}}%
+\pgftext[x=0.348772in,y=1.231597in,left,base]{\color{textcolor}{\sffamily\fontsize{8.330000}{9.996000}\selectfont\catcode`\^=\active\def^{\ifmmode\sp\else\^{}\fi}\catcode`\%=\active\def%{\%}Dist. (cm)}}%
 \end{pgfscope}%
 \begin{pgfscope}%
 \pgfpathrectangle{\pgfqpoint{0.348772in}{0.412433in}}{\pgfqpoint{0.644147in}{0.735831in}}%
@@ -986,7 +986,7 @@
 \definecolor{textcolor}{rgb}{0.000000,0.000000,0.000000}%
 \pgfsetstrokecolor{textcolor}%
 \pgfsetfillcolor{textcolor}%
-\pgftext[x=1.442389in,y=1.231597in,left,base]{\color{textcolor}{\sffamily\fontsize{8.330000}{9.996000}\selectfont\catcode`\^=\active\def^{\ifmmode\sp\else\^{}\fi}\catcode`\%=\active\def%{\%}Sector frac.}}%
+\pgftext[x=1.442389in,y=1.231597in,left,base]{\color{textcolor}{\sffamily\fontsize{8.330000}{9.996000}\selectfont\catcode`\^=\active\def^{\ifmmode\sp\else\^{}\fi}\catcode`\%=\active\def%{\%}Sect. frac.}}%
 \end{pgfscope}%
 \begin{pgfscope}%
 \pgfpathrectangle{\pgfqpoint{1.442389in}{0.412433in}}{\pgfqpoint{0.644147in}{0.735831in}}%

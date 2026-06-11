@@ -130,12 +130,12 @@ def notebook_github_url(source_file: str | Path) -> str:
 def save_table(path: Path | str, tabular: str, source_url: str) -> None:
     r"""Write a LaTeX tabular to a snippet file for \input into a table float.
 
-    Appends a source hyperlink as a final table note so the origin is
-    traceable from the PDF without cluttering the caption.
-    A trailing % suppresses the end-of-file newline artefact.
+    The source hyperlink lives in the table caption (see ``save_caption``), so
+    it is not repeated here. ``source_url`` is accepted for call-site symmetry
+    with ``save_caption`` but is intentionally unused. A trailing % suppresses
+    the end-of-file newline artefact.
     """
-    source = "\n" + r"\par\smallskip\raggedleft{\tiny\href{" + source_url + r"}{\underline{Source}}}"
-    content = tabular.rstrip() + source + "%"
+    content = tabular.rstrip() + "%"
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     Path(path).write_text(content, encoding="utf-8")
     print(f"Saved table to {Path(path).resolve()}")

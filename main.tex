@@ -115,8 +115,8 @@
     \end{table*}%
   }{%
     \begin{table}[#2]%
-      \centering\small%
-      \input{tables/#3.tex}%
+      \centering%
+      \resizebox{\columnwidth}{!}{\input{tables/#3.tex}}%
       \caption{\protect\input{captions/#3_table.tex}}%
       \label{tab:#3}%
     \end{table}%
@@ -342,7 +342,7 @@
   \autoref{tab:muscle_selection_freq_sweep} and
   \autoref{fig:muscle_selection_freq_sweep}.
 
-  \latextable*{muscle_selection_freq_sweep}
+  \latextable[H]{muscle_selection_freq_sweep}
 
   \pgffigure[H]{muscle_selection_freq_sweep}
 
@@ -359,7 +359,7 @@
   normalise the per-neuron profile by its own neuron-mean
   (\autoref{fig:neural_correlates}).
 
-  \pgffigure*{neural_correlates}
+  \pgffigure[H]{neural_correlates}
 
   Muscle identity is therefore encoded temporally by the oscillation frequency
   of $x_1$, not spatially by which neurons are active (\autoref{fig:freq_map}).
@@ -394,7 +394,9 @@
   elbow, there is a maximum shoulder drift, such that if upon moving the elbow
   the shoulder drifts too much, we switch to controlling the shoulder. We also
   provide per-band gain multipliers applied to the gain matrix values before the
-  solve, to further tune individual band aggressiveness.
+  solve, to further tune individual band aggressiveness. Once the elbow angle is
+  below threshold, we begin damping the shoulder velocity in an effort to reduce
+  oscillations.
 
   \subsection*{Hyperparameter optimisation}
 
@@ -420,14 +422,36 @@
 
   \subsection*{Results}
 
+  The selected configuration and the range searched for each parameter are given
+  in \autoref{tab:optimal_hyperparameters}; no optimum sits on a search bound.
   The most optimal controller's metrics are summarised in
   \autoref{tab:cartesian_control_sweep}, its losses over time are plotted in
-  \autoref{fig:cartesian_control_errors}, an example trajectory is
-  illustrated in \autoref{fig:cartesian_control_trajectory}, and a heatmap of
-  targets and the final distances to them is drawn in
+  \autoref{fig:cartesian_control_errors}, an example trajectory is illustrated
+  in \autoref{fig:cartesian_control_trajectory}, and a heatmap of targets and
+  the final distances to them is drawn in
   \autoref{fig:cartesian_control_heatmap}.
 
-  \latextable*{cartesian_control_sweep}
+  The shoulder bands were scaled up and elbow bands were scaled down: the
+  optimiser independently rediscovered the cross-talk hypothesis, that the elbow
+  is ``loud'', driving the shoulder with it, so the controller converges on
+  driving the elbow slowly. In addition, the minimum and maximum phase lengths
+  are short, just a little larger than the state held by \BMI, also
+  rediscovering the hypothesis of small elbow movements that require quick and
+  often shoulder corrections to minimise drastic cross-talk effects. The need
+  for shoulder velocity damping is consolidated by the optimal controller
+  converging on a high damping coefficient. The need for the elbow to be held
+  once correct is also confirmed, due to the hard holding coefficient. The
+  benefit of opposite direction shoulder drive in an effort to minimise
+  cross-talk effects didn't seem to be valuable, likely due to the lack of
+  granular control over selected muscle power. The most surprising result is
+  that open-loop control wins over closed-loop control. We argue that the
+  population-mean spectral target is only a loose proxy for the muscle selection
+  latent state. In addition, as the \Brain is a linear system, sinusoidal inputs
+  produce sinusoidal outputs so a \BMI based on rhythm can continue to operate
+  without closed-loop control.
+
+  \latextable[H]{optimal_hyperparameters}
+  \latextable[H]{cartesian_control_sweep}
   \pgffigure[H]{cartesian_control_errors}
   \pgffigure*{cartesian_control_trajectory}
   \pgffigure[H]{cartesian_control_heatmap}
@@ -448,10 +472,38 @@
   with a null hypothesis that all group means are equal. A metric is plotted
   only if the \ac{anova} p-value satisfies $p \le 0.05$.
 
+  Only the effort significantly varied with the elbow band scale
+  (\autoref{fig:cartesian_control_ablation_band_scale}). We find that open-loop
+  control reduced the final distance, had less control effort, and slightly
+  improved the sector fraction
+  \autoref{fig:cartesian_control_ablation_control_mode}. We find constraining
+  the elbow to not extend past \SI{180}{\degree} worsens final distance,
+  improves sector fraction, improves time-to-threshold, reduces effort, reduces
+  rotation and improves the path. The constrained elbow is a much better
+  controller in the areas reachable by an anatomically correct quadrant.
+  However, in regions hard to access by such an arm (i.e., behind and towards
+  the centre of the body, or negative-negative quadrant), its performance is
+  poor, just like a real human.
+
+
+
   \pgffigure[H]{cartesian_control_ablation_band_scale}
-  \pgffigure[H]{cartesian_control_ablation_blend}
   \pgffigure[H]{cartesian_control_ablation_control_mode}
   \pgffigure[H]{cartesian_control_ablation_elbow}
+
+  \subsection*{Robustness to noise}
+
+  \pgffigure[H]{cartesian_control_robustness}
+
+  \section*{Limitations and comparison to group solutions}
+
+  \section*{Conclusion}
+
+  \section*{Acknowledgements}
+
+
+
+
 \end{multicols*}
 
 
