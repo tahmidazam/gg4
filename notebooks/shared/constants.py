@@ -21,6 +21,7 @@ N_FFT    = 512
 _REPO         = Path(__file__).resolve().parent.parent.parent
 DATA_DIR      = _REPO / "data"
 N_LATENT_PATH = DATA_DIR / "latent_dim.npz"
+BANDS_PATH    = DATA_DIR / "bands.npz"
 ERA_PATH      = DATA_DIR / "era_matrices.npz"
 CVA_EM_PATH   = DATA_DIR / "cva_em_matrices.npz"
 ERA_EM_PATH   = DATA_DIR / "era_em_matrices.npz"

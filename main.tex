@@ -7,7 +7,7 @@
 \usepackage[margin=1in]{geometry}
 
 % Font
-\usepackage[OT1]{fontenc}
+\usepackage[T1]{fontenc}
 \renewcommand*\familydefault{\sfdefault}
 \usepackage{sfmath}
 
@@ -132,11 +132,17 @@
   warm-started between successive steps.
   Controller hyperparameters were selected via a log-uniform random search
   (8 trials per controller) scored on RMS tracking error.
+
+  \section{Muscle selection}
+
+  \pgffigure[H]{muscle_selection_freq_sweep}
+  \pgffigure[H]{neural_correlates}
 \end{multicols*}
 
 \pgffigure{bode}
 \pgffigure{obs_reconstruction}
 \pgffigure{freq_map}
 \pgffigure{spectral_control}
+
 
 \end{document}

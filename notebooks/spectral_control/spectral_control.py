@@ -581,7 +581,7 @@ def make_spectral_control_figure(
         ax_y.set_title(name)
         ax_y.tick_params(labelbottom=False)
         if col == 0:
-            ax_y.set_ylabel(r"$\bar{y}(t)$")
+            ax_y.set_ylabel(r"$\overline{y}(t)$")
             l_unc = l_unc_line
             l_ref = l_ref_line
 
