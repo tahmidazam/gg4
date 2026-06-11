@@ -22,5 +22,8 @@ dependencies = [
 [tool.ruff]
 exclude = ["provided"]
 
-[tool.ty.environment]
+[tool.ty.src]
 exclude = ["provided"]
+
+[tool.ty.environment]
+extra-paths = ["notebooks/shared", "provided"]
