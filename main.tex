@@ -85,7 +85,7 @@
       \else%
         \fbox{\texttt{figures/\detokenize{#3}.pgf}}%
       \fi%
-      % \caption{\protect\input{captions/#3.tex}}%
+      \caption{\protect\input{captions/#3.tex}}%
       \label{fig:#3}%
     \end{figure*}%
   }{%
@@ -96,7 +96,7 @@
       \else%
         \fbox{\texttt{figures/\detokenize{#3}.pgf}}%
       \fi%
-      % \caption{\protect\input{captions/#3.tex}}%
+      \caption{\protect\input{captions/#3.tex}}%
       \label{fig:#3}%
     \end{figure}%
   }%
@@ -110,14 +110,14 @@
     \begin{table*}[#2]%
       \centering\small%
       \input{tables/#3.tex}%
-      % \caption{\protect\input{captions/#3_table.tex}}%
+      \caption{\protect\input{captions/#3_table.tex}}%
       \label{tab:#3}%
     \end{table*}%
   }{%
     \begin{table}[#2]%
       \centering\small%
       \input{tables/#3.tex}%
-      % \caption{\protect\input{captions/#3_table.tex}}%
+      \caption{\protect\input{captions/#3_table.tex}}%
       \label{tab:#3}%
     \end{table}%
   }%
@@ -422,7 +422,7 @@
 
   The most optimal controller's metrics are summarised in
   \autoref{tab:cartesian_control_sweep}, its losses over time are plotted in
-  \autoref{fig:fig:cartesian_control_errors}, an example trajectory is
+  \autoref{fig:cartesian_control_errors}, an example trajectory is
   illustrated in \autoref{fig:cartesian_control_trajectory}, and a heatmap of
   targets and the final distances to them is drawn in
   \autoref{fig:cartesian_control_heatmap}.
