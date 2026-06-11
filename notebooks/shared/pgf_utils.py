@@ -127,6 +127,20 @@ def notebook_github_url(source_file: str | Path) -> str:
     return f"{base}/blob/main/{rel}"
 
 
+def save_table(path: Path | str, tabular: str, source_url: str) -> None:
+    r"""Write a LaTeX tabular to a snippet file for \input into a table float.
+
+    Appends a source hyperlink as a final table note so the origin is
+    traceable from the PDF without cluttering the caption.
+    A trailing % suppresses the end-of-file newline artefact.
+    """
+    source = "\n" + r"\par\smallskip\raggedleft{\tiny\href{" + source_url + r"}{\underline{Source}}}"
+    content = tabular.rstrip() + source + "%"
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    Path(path).write_text(content, encoding="utf-8")
+    print(f"Saved table to {Path(path).resolve()}")
+
+
 def save_caption(path: Path | str, caption: str, source_url: str) -> None:
     r"""Write a caption to a LaTeX snippet file, appending a source hyperlink.
 

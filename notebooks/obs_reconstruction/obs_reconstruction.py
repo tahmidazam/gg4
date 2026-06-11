@@ -140,64 +140,52 @@ def make_obs_reconstruction_figure(
     data: dict,
     figsize: tuple[float, float],
 ) -> plt.Figure:
-    """Two-panel figure: per-channel R² (left) and Frobenius R² (right).
+    """Single-panel grouped violin figure: R²_F by estimator and n_x.
 
     ``data`` keys:
-        estimates : list[SystemEstimate] — ordered list used for labels/colours
-        r2        : dict[name, (N, n_y) array] — per-channel R² across trials
-        r2f       : dict[name, (N,) array]     — Frobenius R² across trials
+        estimate_groups : list[list[SystemEstimate]] — one inner list per n_x,
+                          same ordering as ``latent_dims``
+        r2f             : dict[name, (N,) array] — Frobenius R² across trials
+        latent_dims     : list[int] — e.g. [2, 4, 6]
     """
-    estimates: list[SystemEstimate] = data["estimates"]
-    r2_dict: dict[str, np.ndarray] = data["r2"]
+    estimate_groups: list[list[SystemEstimate]] = data["estimate_groups"]
     r2f_dict: dict[str, np.ndarray] = data["r2f"]
+    latent_dims: list[int] = data["latent_dims"]
 
-    n_methods = len(estimates)
-    n_y = next(iter(r2_dict.values())).shape[1]
-    spacing = n_methods + 1  # gap of 1 between channel groups
+    n_groups = len(latent_dims)
+    n_per_group = max(len(g) for g in estimate_groups)
+    spacing = n_per_group + 1  # one empty slot between groups
 
-    fig, (ax_l, ax_r) = plt.subplots(
-        1, 2, figsize=figsize, layout="constrained", gridspec_kw={"width_ratios": [4, 1]}, sharey=True
-    )
+    # Colours are fixed per method (position within group), taken from the first group
+    method_colours = [est.colour for est in estimate_groups[0]]
+    method_labels  = [est.label.split(r" $")[0] for est in estimate_groups[0]]
 
-    for m, est in enumerate(estimates):
-        chan_pos = [spacing * j + m + 1 for j in range(n_y)]
-        parts = ax_l.violinplot(
-            [r2_dict[est.name][:, j] for j in range(n_y)],
-            positions=chan_pos,
-            showmedians=True,
-            widths=0.7,
-        )
-        _style_violin(parts, est.colour)
+    fig, ax = plt.subplots(1, 1, figsize=figsize, layout="constrained")
 
-        parts_r = ax_r.violinplot(
-            r2f_dict[est.name],
-            positions=[m + 1],
-            showmedians=True,
-            widths=0.6,
-        )
-        _style_violin(parts_r, est.colour)
+    for g_idx, group in enumerate(estimate_groups):
+        for m_idx, est in enumerate(group):
+            pos = g_idx * spacing + m_idx + 1
+            parts = ax.violinplot(
+                r2f_dict[est.name],
+                positions=[pos],
+                showmedians=True,
+                widths=0.7,
+            )
+            _style_violin(parts, method_colours[m_idx])
 
-    # x-ticks at centre of each channel group
-    centres = [spacing * j + (n_methods + 1) / 2 for j in range(n_y)]
-    ax_l.set_xticks(centres)
-    ax_l.set_xticklabels([str(j + 1) for j in range(n_y)])
-    ax_l.set_xlabel(r"output channel $j$")
-    ax_l.set_title(r"$R^2$")
-    ax_l.axhline(0, color="0.6", lw=0.5, ls="--")
+    # x-ticks at the centre of each n_x group
+    centres = [g * spacing + (n_per_group + 1) / 2 for g in range(n_groups)]
+    ax.set_xticks(centres)
+    ax.set_xticklabels([rf"$n_x = {d}$" for d in latent_dims])
+    ax.set_ylabel(r"$R^2_F$")
+    ax.axhline(0, color="0.6", lw=0.5, ls="--")
+    ax.set_ylim(bottom=0)
 
-    ax_r.set_xticks(list(range(1, n_methods + 1)))
-    ax_r.set_xticklabels([""] * n_methods)
-    ax_r.set_title(r"$R^2_F$")
-    ax_r.axhline(0, color="0.6", lw=0.5, ls="--")
-
-    ax_l.set_ylim(bottom=0)
-
-    fig.legend(
-        handles=[Patch(facecolor=est.colour, alpha=0.6, label=est.label) for est in estimates],
-        loc="outside lower center",
-        ncol=n_methods,
-        frameon=False,
-    )
+    handles = [
+        Patch(facecolor=c, alpha=0.6, label=lbl)
+        for c, lbl in zip(method_colours, method_labels)
+    ]
+    fig.legend(handles=handles, loc="outside lower center", ncol=n_per_group, frameon=False)
 
     return fig
 

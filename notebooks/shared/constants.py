@@ -36,9 +36,13 @@ ERA_EM_6_PATH  = DATA_DIR / "era_em_6_matrices.npz"
 ERA_EM_PATHS   = [ERA_EM_2_PATH, ERA_EM_4_PATH, ERA_EM_6_PATH]
 ERA_EM_COLOURS = ["#1f77b4", "#ff7f0e", "#2ca02c"]
 
-# CVA+EM at the chosen latent dimension (n_x=4) for estimator comparison
+# CVA+EM at each candidate latent dimension
+CVA_EM_2_PATH   = DATA_DIR / "cva_em_2_matrices.npz"
 CVA_EM_4_PATH   = DATA_DIR / "cva_em_4_matrices.npz"
-CVA_EM_4_COLOUR = "#9467bd"  # purple — distinct from all ERA+EM colours
+CVA_EM_6_PATH   = DATA_DIR / "cva_em_6_matrices.npz"
+CVA_EM_PATHS    = [CVA_EM_2_PATH, CVA_EM_4_PATH, CVA_EM_6_PATH]
+CVA_EM_COLOURS  = ["#e377c2", "#9467bd", "#bcbd22"]  # pink, purple, olive
+CVA_EM_4_COLOUR = CVA_EM_COLOURS[1]  # kept for backward compatibility
 
 # Closed-loop controller colours — distinct from all ERA+EM and CVA+EM colours
 CONTROLLER_COLOURS: dict[str, str] = {
@@ -49,3 +53,10 @@ CONTROLLER_COLOURS: dict[str, str] = {
 
 FIGURES_PATH  = _REPO / "figures"
 CAPTIONS_PATH = _REPO / "captions"
+TABLES_PATH   = _REPO / "tables"
+
+# ── Cartesian control ─────────────────────────────────────────────────────────
+ARM_LINK: float = 30.0   # cm, both arm links equal
+MAX_DELTA: float = 0.25  # rad, IK branch-change continuity guard
+
+CARTESIAN_CONTROL_CACHE_PATH = DATA_DIR / "cartesian_control_cache.npz"

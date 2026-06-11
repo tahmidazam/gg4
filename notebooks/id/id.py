@@ -450,10 +450,10 @@ def make_id_figure(
     fig_w, fig_h = figsize
 
     # Fixed margins in inches
-    top = 0.20      # clearance above top row for column titles
+    top = 0.38      # clearance above top row for two-line column titles
     bottom = 0.10   # clearance below bottom row
     vgap = 0.05     # vertical gap between rows
-    left = 0.25     # clearance for row labels
+    left = 0.40     # clearance for two-line row labels
     right = 0.03
 
     row_h = (fig_h - top - bottom - vgap * (n_rows - 1)) / n_rows
@@ -494,9 +494,17 @@ def make_id_figure(
             ax.set_xticks([])
             ax.set_yticks([])
             if row == 0:
-                ax.set_title(rf"$\mathbf{{{title}}}$")
+                if plt.rcParams.get("text.usetex", False):
+                    title_str = (
+                        rf"$\textbf{{{title}}}$"
+                        + "\n"
+                        + rf"{{\footnotesize $\pm{vmax:.2g}$}}"
+                    )
+                else:
+                    title_str = rf"$\mathbf{{{title}}}$" + "\n" + rf"$\pm{vmax:.2g}$"
+                ax.set_title(title_str, pad=2)
 
     for row, est in enumerate(estimates):
-        axes[row, 0].set_ylabel(est.label, rotation=90)
+        axes[row, 0].set_ylabel(est.label.replace(" ", "\n"), rotation=90)
 
     return fig

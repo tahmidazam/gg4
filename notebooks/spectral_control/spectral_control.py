@@ -686,6 +686,7 @@ def spectral_metrics(
         amp_err = spec[bins] - target_amps
         off_mask = np.ones(len(spec), dtype=bool)
         off_mask[bins] = False
+        u = res["U"]
         rows.append({
             "controller": name,
             "spectral_rms_error": round(float(np.sqrt((amp_err**2).mean())), 4),
@@ -693,5 +694,6 @@ def spectral_metrics(
             "off_target_power": round(
                 float(spec[off_mask].mean() / (target_amps.mean() + 1e-12)), 4
             ),
+            "control_effort": round(float(np.sqrt(((u - 0.5) ** 2).mean())), 4),
         })
     return pd.DataFrame(rows).set_index("controller")

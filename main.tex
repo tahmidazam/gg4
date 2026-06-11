@@ -3,6 +3,8 @@
 % Custom command parsing
 \usepackage{xparse}
 
+
+
 % Margins
 \usepackage[margin=1in]{geometry}
 
@@ -38,11 +40,33 @@
 \graphicspath{{figures/}}
 \providecommand{\mathdefault}[1]{#1}
 
+% Units
+\usepackage{siunitx}
+
 % Hyperlinks
 \usepackage[colorlinks=true, linkcolor=blue, urlcolor=blue, citecolor=blue]{hyperref}
 
+% Tables
+\usepackage{booktabs}
+
 % Layout
 \usepackage{float}
+
+% Acrynoyms
+\usepackage{acro}
+
+\DeclareAcronym{bmi}{short=BMI,long=Brain--Machine Interface}
+\DeclareAcronym{lgssm}{short=LGSSM,long=Linear Gaussian State--Space Model}
+\DeclareAcronym{ols}{short=OLS,long=Ordinary Least Squares}
+\DeclareAcronym{bic}{short=BIC,long=Bayesian Information Criterion}
+\DeclareAcronym{cva}{short=CVA,long=Canonical Variate Analysis}
+\DeclareAcronym{em}{short=EM,long=Expectation-Maximisation}
+\DeclareAcronym{era}{short=ERA,long=Eigensystem Realisation Algorithm}
+\DeclareAcronym{rms}{short=RMS,long=Root Mean Square}
+\DeclareAcronym{lqg}{short=LQG,long=Linear Quadratic Gaussian}
+\DeclareAcronym{lqi}{short=LQI,long=Linear Quadratic Integral}
+\DeclareAcronym{mpc}{short=MPC,long=Model Predictive Control}
+
 
 % \pgffigure{<key>} inserts a float figure from figures/<key>.pgf, captions it
 % from captions/<key>.tex, and labels it fig:<key>.
@@ -64,85 +88,250 @@
   }%
 }
 
+
+% \latextable{<key>} inserts a float table from tables/<key>.tex, captions it
+% from captions/<key>_table.tex, and labels it tab:<key>.
+\NewDocumentCommand{\latextable}{s O{htbp} m}{%
+  \IfBooleanTF{#1}{%
+    \begin{table*}[#2]%
+      \centering%
+      \input{tables/#3.tex}%
+      \caption{\protect\input{captions/#3_table.tex}}%
+      \label{tab:#3}%
+    \end{table*}%
+  }{%
+    \begin{table}[#2]%
+      \centering%
+      \input{tables/#3.tex}%
+      \caption{\protect\input{captions/#3_table.tex}}%
+      \label{tab:#3}%
+    \end{table}%
+  }%
+}
+
+
+% Automatic spacing
+\usepackage{xspace}
+\newcommand{\Brain}{\texttt{Brain}\xspace}
+\newcommand{\LGSSM}{\ac{lgssm}\xspace}
+\newcommand{\BMI}{\ac{bmi}\xspace}
+\newcommand{\LQG}{\ac{lqg}\xspace}
+\newcommand{\LQI}{\ac{lqi}\xspace}
+\newcommand{\MPC}{\ac{mpc}\xspace}
+
+
+
 \begin{document}
+\noindent {\Large \textbf{Final Report}}
+
+\vspace{0.5em}
+\noindent Tahmid Azam\\
+\noindent {\small Part IIA Project: \textit{Neural Control with Adaptive State Estimation}} (GG4)\\
+\noindent {\small \today}
+
+\vspace{1em}
+\hrule
+\vspace{1em}
 
 \begin{multicols*}{2}
   \section*{Introduction}
 
+  We are given a \Brain and a \ac{bmi}, which controls an arm. We are tasked
+  with controlling the position of the hand at the end of the arm. The \Brain
+  takes $n_u=2$ inputs and produces $n_y=16$ outputs; we assume it is a
+  \ac{lgssm}. The \ac{bmi} takes the 16-dimensional observations from the \Brain
+  and applies a fixed linear decoder to map them to 2 latent states: $x_1$, the
+  muscle selection rhythm; and $x_2$, power rhythm. The \ac{bmi} stores a
+  rolling history of $x_1$, which is passed through 4 fixed band--pass filters
+  which measure how strongly $x_1$ oscillates at that muscle's defined
+  excitation frequency. A history of $x_2$ is also stored in state, and the
+  current value is compared to a half-- and full--period in the past: if strong
+  oscillation is found, evidence accumulates; otherwise, evidence decays,
+  producing a smooth power state. Muscle activation is the product of activation
+  and the selection vector. Each muscle produces force proportional to its
+  activation, and for each joint, the net force is the sum of signed muscle
+  forces. Positive forces represent flexion; negative forces represent
+  extension. A dry-friction threshold must be overcome, and once this is
+  overcome, the remaining net force (once subtracting the dry friction) is
+  divided by wet friction representing viscous resistance. Joint angles are
+  integrated, and 2-link arm kinematics give the hand position.
+
+  \section*{Rules of engagement}
+
+  The holistic view of this project is to be able to reason and interpret a
+  controller which takes observations from a brain (e.g. via electrodes on the
+  scalp) to move a prosthetic arm. Critically, the brain is a black box and its
+  model ``parameters'' cannot be directly observed. In the spirit of this view,
+  we propose specific rules of engagement surrounding our analysis. We do not
+  attempt to decompile the provided \Brain executables to derive the system
+  matrices. We do not average over multiple \Brain seeds, removing noise to
+  derive system matrices, we reserve this for evaluation purposes only to
+  demonstrate robustness against noise. Where we do run experiments that are not
+  physically realisable, we do this to demonstrate the direction of our
+  analysis, and we replicate results in empirically valid ways alongside. We do
+  not directly use the weights of the \BMI in our control efforts: we allow
+  ourselves to read their values for experimental design, but any results we
+  must prove empirically before use. We only allow the use of the 16-dimensional
+  observations from the \Brain and the hand position given by the \BMI for
+  closed-loop control; we do not rely on the internal state of the \BMI (e.g.,
+  arm angles or latent state variables) for feedback. We also do not expect or
+  attempt to control the elbow joint past \SI{180}{\degree} to mimic the
+  capabilities of an anatomically accurate arm. We motivate these constraints as
+  to achieve resilience and independence to both: inter-individual variation in
+  brains (and therefore system matrices); and manufacturers of prosthetic arms
+  (and therefore \BMI decoding, state, and arm kinematics defined by model
+  weights).
 
   \section*{System identification}
 
-  The exact Hankel singular-value spectrum, obtained via same-seed impulse
-  subtraction (a theoretical reference not physically realisable with a real
-  brain), has rank 6 (\autoref{fig:latent_dim}).
-  A physically realisable single-run OLS estimate ($N = 5{,}000$ steps) raises
-  a noise floor that obscures modes $3$--$6$ (exact values
-  $\sigma_3/\sigma_1 = 0.125$ down to $\sigma_6/\sigma_1 = 3.3\times10^{-3}$);
-  BIC model selection recovers only $n_x = 2$.
-  These modes carry little input--output energy and are near-unobservable from
-  any finite honest recording.
-  However, the downstream decoder operates on frequency-selective latent
-  activity, so a model that misrepresents the transfer function will produce
-  incorrect muscle activations regardless of one-step prediction quality.
-  ERA+EM was therefore fitted at $n_x \in \{2, 4, 6\}$ to identify the minimum
-  sufficient order.
+  As we assume the \Brain is a \LGSSM, we explore system identification as a
+  means to understand the system matrices defining the model:
+  \begin{align*}
+    \underline{x}_{t+1} & = \underline{A}\,\underline{x}_t + \underline{B}\,\underline{u}_t + \underline{w}_t, & \underline{w}_t \sim \mathcal{N}(\underline{0}, \underline{Q}) \\
+    \underline{y}_t     & = \underline{C}\,\underline{x}_t + \underline{o}_t,                                  & \underline{o}_t \sim \mathcal{N}(\underline{0}, \underline{R})
+  \end{align*}
 
-  At $n_x = 2$ the model reproduces per-neuron frequency selectivity for $u_1$
-  but not for $u_2$ (\autoref{fig:freq_map}).
-  At $n_x = 4$ both input channels are recovered; $n_x = 6$ yields no visible
-  further improvement. ERA+EM at $n_x = 4$ was therefore selected.
-  The Bode magnitude error (\autoref{fig:bode}), computed diagnostically via
-  same-seed impulse subtraction, confirms this pattern: mean error falls
-  substantially from $n_x = 2$ to $n_x = 4$, with negligible reduction at
-  $n_x = 6$.
+  \subsection*{Identification evaluation}
 
-  CVA+EM was fitted at $n_x = 4$ for comparison.
-  Its transfer function reproduces the $u_1$ selectivity but misrepresents
-  $u_2$ relative to the honest OLS estimate (rightmost column,
-  \autoref{fig:freq_map}).
-  One-step-ahead Kalman prediction on $N = 100$ held-out trials
-  ($T = 2{,}000$ steps each) confirmed ERA+EM superiority across all output
-  channels (\autoref{fig:obs_reconstruction}).
-  ERA+EM at $n_x = 4$ was adopted; the identified matrices are shown in
-  \autoref{fig:id}.
+  To evaluate our estimates, we have two strategies: the reconstruction of
+  observations and the reconstruction of frequency response. To measure the
+  reconstruction of observations, we use the coefficient of determination
+  defined with the Frobenius norm:
+  \begin{equation*}
+    R^2 = 1 - \frac{\left\lVert Y - \hat{Y} \right\rVert_F^2}{\left\lVert Y - \overline{Y} \right\rVert_F^2}
+  \end{equation*}
+  This form is chosen for its effectiveness at aggregating errors across all
+  time points and all observation dimensions. We weight this up against its
+  disadvantages, which include ignorance of observation covariance and temporal
+  correlations. To measure the reconstruction of frequency response, we inspect
+  a frequency map derived analytically from estimates of system matrices, and
+  compare characteristics with empirical results from a a single run of the
+  \Brain. We find the transfer function of the \LGSSM, dependent on only the
+  deterministic components (matrices $\underline{A}$, $\underline{B}$, and
+  \underline{C}):
+  \begin{equation*}
+    \underline{H}(z) = \underline{C} \left(z\underline{I} - \underline{A}\right)^{-1}\underline{B}
+  \end{equation*}
+  We define an estimate to reconstruct the frequency response well if it can
+  minimise the error between analytic and empirical values of
+  $|H(\mathrm{e}^{\mathrm{j}\omega})|$ across all neurones and frequencies $[0,
+        \pi]$. Given the emphasis on rhythm in the \BMI we weigh frequency response
+  reconstruction more than observation reconstruction if a compromise is
+  necessary.
+
+  \subsection*{Identification methods}
+
+  We run two \Brain instances with and without input to isolate and subtract the
+  noise. We can then calculate the exact Markov parameters, construct Hankel
+  matrices, and form a singular-value spectrum. With this analysis we find
+  $\sigma_i / \sigma_1$ fall after $i=6$, indicating the true latent dimension
+  number to be $n_x=6$ (\autoref{fig:latent_dim}). However, this method is not
+  physically realisable: you cannot run the same physiological brain twice with
+  the same random state. This would mean rewinding a brain, re-run a trial
+  without a stimulus, and subtract: noise is truly stochastic outside of a
+  simulation. A physically realisable single-run \ac{ols} regression estimate
+  uncovers a noise floor that obscures modes 3--6. Balancing likelihood and
+  model complexity with \ac{bic} model selection, we identify $n_x=2 \ne 6$
+  (\autoref{fig:latent_dim}).
 
   \pgffigure[H]{latent_dim}
 
+  We plot a heatmap of $|H(\mathrm{e}^{\mathrm{j}\omega})|$ and find that
+  \ac{cva} and \ac{em} to reconstruct $u_1$ well, but not $u_2$ over all $n_x$
+  candidates $\{2, 4, 6\}$ (\autoref{fig:freq_map}, N.B. only $n_x=4$ plotted).
+  We turn to an estimation method that uses the \ac{era} and \ac{em} that
+  utilises \ac{ols}-estimated Markov parameters and find similar results for
+  $n_x=2$: good reconstruction of $u_1$ but poor for $u_2$. However, in contrast
+  to \ac{cva}+\ac{em}, reconstruction of the $u_2$ frequency response improved
+  with $n_x=4$ and $n_x=6$ (\autoref{fig:freq_map}). More generally, we observe
+  that the \Brain acts as a low-pass filter. The observation reconstruction
+  quality remained similar between \ac{cva}+\ac{em} and \ac{era}+\ac{em}
+  (\autoref{fig:obs_reconstruction}).
+
+  \pgffigure[H]{obs_reconstruction}
+
+  As there was not a huge difference between $n_x=4$ and $n_x=6$, we select
+  \ac{era}+\ac{em} and $n_x=4$, which yields system matrices visualised in
+  \autoref{fig:id}.
+
   \pgffigure[H]{id}
 
-  \section*{Closed-loop spectral control}
+  \pgffigure*{freq_map}
 
-  Having selected ERA+EM at $n_x = 4$ as the working model, we test whether
-  closed-loop stimulation can reproduce a prescribed frequency spectrum in
-  neural population activity.  The target is a sum of two sinusoids at
-  $f \in \{0.01,\, 0.03\}$ cycles per sample with amplitudes $\{1.5,\, 0.7\}$,
-  oscillating about a physical population mean of $2.5$ (well within the
-  reachable range of $[0.24,\, 5.4]$).  Three controllers were implemented
-  against this model: Linear--Quadratic--Gaussian (LQG), LQG with integral
-  action (LQI), and Model Predictive Control (MPC).
+  \section*{Closed-loop spectral control of brain observations}
 
-  All three use a Kalman filter for online state estimation.
-  The LQR tracking cost is a per-neuron cost $C^\top C$
-  ($\lambda_\text{var} = 1$), driving all 16 output channels simultaneously.
-  LQI adds an integrator on the centred output error to reject steady-state
-  bias; the integrator weight $q_\text{int}$ is kept small so that sinusoidal
-  tracking error is not accumulated.
-  MPC solves a condensed receding-horizon quadratic programme ($H = 30$ steps,
-  covering one full period of $f = 0.03$) with explicit input box constraints,
-  warm-started between successive steps.
-  Controller hyperparameters were selected via a log-uniform random search
-  (8 trials per controller) scored on RMS tracking error.
+  We test whether closed-loop stimulation can reproduce a prescribed frequency
+  spectrum in neural population mean activity. We motivate the following
+  evaluation framework and method with the emphasis on controlling rhythms in
+  the \Brain observations for influence over \BMI latent variables and the arm
+  downstream.
 
-  \section{Muscle selection}
+  \subsection*{Spectral control evaluation}
+
+  We use the following metrics to evaluate each controller: spectral \ac{rms}
+  error, which measures amplitude deviation at target frequencies; the maximum
+  amplitude error, the worst-case per-component deviation; and the off-target
+  power ratio, the mean spectral amplitude at non-target frequencies, relative
+  to mean target amplitude.
+
+  \subsection*{Spectral control method}
+
+  We offer 3 candidates for control strategies: \ac{lqg} to respect the \Brain's
+  \LGSSM structure; \ac{lqi} to correct steady-state error; and \ac{mpc} to
+  optimise for and appreciate constraints on $u_i \in [0,1]$.
+
+  \pgffigure*{spectral_control}
+
+  \subsection*{Spectral control results}
+
+  Inspecting the raw population mean traces, we find \LQG overestimates the
+  population mean with a steady-state error, which is removed effectively by
+  \LQI. \MPC fails to reconstruct the higher frequency components. We select
+  \LQI due to its lower control effort compared to \LQG and better
+  reconstruction performance over \MPC.
+
+  \pgffigure[H]{spectral_control_metrics}
+
+  \section{Hand control}
+
+  The mechanism of the \BMI of muscle selection and a shared power state means
+  that simultaneous control of different muscles is unlikely, as there is no
+  granular control to direct different muscles at different power at the same
+  time. This constrains our control strategy to be a sequential one, directing
+  one muscle at a time.
+
+  \subsection*{Muscle selection}
+
+  We sweep frequencies for both inputs and measure shoulder and elbow angles,
+  determined by inverse kinematics to find the specific frequencies that excite
+  specific muscles. We empirically recover the frequency bands defined in the
+  \BMI weights using a single seed, shown in TABLE and FIGURE.
 
   \pgffigure[H]{muscle_selection_freq_sweep}
-  \pgffigure[H]{neural_correlates}
+
+  We observe that amplitude decreases with frequency, making it harder to drive
+  muscles that require higher frequencies. This may be due to the low-pass
+  action of the \Brain. We also observe cross-talk for elbow movements but not
+  shoulder movements: the shoulder can be moved independently of the elbow, but
+  the elbow cannot be moved indepedently of the shoulder. This motivates a
+  control strategy that first achieves the correct elbow angle, then disregards
+  control over the elbow, and uses S$+$ and S$-$ only to correct the shoulder
+  angle. In addition, during the initial correction angle phase, we should
+  alternate between correcting the elbow angle and correcting the shoulder
+  angle, as attempting to move the elbow moves the shoulder.
+
+
+
+  % \section{Muscle selection}
+
+  % \pgffigure[H]{muscle_selection_freq_sweep}
+  % \pgffigure[H]{neural_correlates}
 \end{multicols*}
 
-\pgffigure{bode}
-\pgffigure{obs_reconstruction}
-\pgffigure{freq_map}
-\pgffigure{spectral_control}
+% \pgffigure{bode}
+% 
+% 
+% 
 
 
 \end{document}

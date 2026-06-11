@@ -255,6 +255,61 @@ def find_bands(
     ]
 
 
+# ── Table ─────────────────────────────────────────────────────────────────────
+
+
+def true_filter_omegas(weights_path) -> list[float]:
+    """Return the four true bandpass-filter centre frequencies (rad/step).
+
+    Each kernel in ``muscle_filter_cos`` is a cosine wave at the filter's
+    centre frequency.  We recover ω by finding the DFT peak on a zero-padded
+    transform of each kernel row.
+    """
+    weights = np.load(weights_path)
+    cos_k = weights["muscle_filter_cos"]   # (4, kernel_size)
+    N = cos_k.shape[1]
+    omegas = []
+    for k in cos_k:
+        spectrum = np.abs(np.fft.rfft(k, n=N * 16))
+        freqs = np.fft.rfftfreq(N * 16, d=1.0) * 2 * np.pi
+        omegas.append(float(freqs[np.argmax(spectrum)]))
+    return omegas
+
+
+def make_muscle_selection_table(
+    bands: list[tuple[float, str, str]],
+    weights_path,
+) -> str:
+    """LaTeX tabular comparing true filter frequencies to recovered sweep peaks.
+
+    Returns a ``tabular`` string (no surrounding ``table`` float) suitable for
+    \\input inside a \\latextable command.
+    """
+    omegas_true = true_filter_omegas(weights_path)
+    rows = []
+    for (freq, label, _), omega_true in zip(bands, omegas_true):
+        omega_rec = 2 * np.pi * freq
+        rows.append((label, omega_true, omega_rec, omega_rec - omega_true))
+
+    label_col = r"Muscle"
+    true_col  = r"$\omega^*_\mathrm{true}$~(rad\,step\textsuperscript{--1})"
+    rec_col   = r"$\omega^*_\mathrm{rec}$~(rad\,step\textsuperscript{--1})"
+    err_col   = r"$\Delta\omega$~(rad\,step\textsuperscript{--1})"
+
+    lines = [
+        r"\begin{tabular}{lSSS}",
+        r"\toprule",
+        f"  {label_col} & {{{true_col}}} & {{{rec_col}}} & {{{err_col}}} \\\\",
+        r"\midrule",
+    ]
+    for label, omega_true, omega_rec, error in rows:
+        lines.append(
+            f"  {label} & {omega_true:.4f} & {omega_rec:.4f} & {error:+.4f} \\\\"
+        )
+    lines += [r"\bottomrule", r"\end{tabular}"]
+    return "\n".join(lines)
+
+
 # ── Figure ────────────────────────────────────────────────────────────────────
 
 
@@ -333,11 +388,10 @@ def make_muscle_selection_freq_sweep_figure(
     axes[0].xaxis.set_major_formatter(FixedFormatter([""] * len(tick_omegas)))
     plt.setp(axes[1].xaxis.get_majorticklabels(), rotation=45, ha="right")
 
-    n_cols = max(1, len(channel_labels) // 2)
     fig.legend(
         *axes[0].get_legend_handles_labels(),
         loc="outside lower center",
-        ncol=n_cols,
+        ncol=len(channel_labels),
         frameon=False,
     )
 
