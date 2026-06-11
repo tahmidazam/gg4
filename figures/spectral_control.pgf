@@ -10611,7 +10611,7 @@
 \pgfsetrectcap%
 \pgfsetroundjoin%
 \pgfsetlinewidth{1.304875pt}%
-\definecolor{currentstroke}{rgb}{0.549020,0.337255,0.294118}%
+\definecolor{currentstroke}{rgb}{0.486275,0.227451,0.929412}%
 \pgfsetstrokecolor{currentstroke}%
 \pgfsetdash{}{0pt}%
 \pgfpathmoveto{\pgfqpoint{4.053350in}{2.994596in}}%
@@ -14103,7 +14103,7 @@
 \pgfsetrectcap%
 \pgfsetroundjoin%
 \pgfsetlinewidth{1.505625pt}%
-\definecolor{currentstroke}{rgb}{0.549020,0.337255,0.294118}%
+\definecolor{currentstroke}{rgb}{0.486275,0.227451,0.929412}%
 \pgfsetstrokecolor{currentstroke}%
 \pgfsetdash{}{0pt}%
 \pgfpathmoveto{\pgfqpoint{2.613504in}{0.231275in}}%

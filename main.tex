@@ -320,12 +320,33 @@
   alternate between correcting the elbow angle and correcting the shoulder
   angle, as attempting to move the elbow moves the shoulder.
 
+  We then ask whether neural observations carry a muscle-specific spatial code:
+  if different neurons respond preferentially at each selection frequency,
+  the control target could be weighted to favour one muscle over another. For each
+  selection frequency we record the full $n_y = 16$\,D amplitude spectrum and
+  normalise the per-neuron profile by its own neuron-mean
+  (\autoref{fig:neural_correlates}).
+
+  \pgffigure[H]{neural_correlates}
+
+  Profiles are broadly consistent at the
+  two shoulder frequencies and diverge at higher elbow frequencies, where the
+  low-pass action of the \Brain attenuates neurons differentially
+  (\autoref{fig:freq_map}). Muscle identity is therefore encoded temporally
+  by the oscillation frequency of $x_1$, not spatially by which neurons
+  are active. No differential neural weighting offers selectivity beyond
+  what the \BMI's bandpass filters already provide, reinforcing the
+  sequential, frequency-based control strategy described above.
+
+
+
+
 
 
   % \section{Muscle selection}
 
   % \pgffigure[H]{muscle_selection_freq_sweep}
-  % \pgffigure[H]{neural_correlates}
+  % 
 \end{multicols*}
 
 % \pgffigure{bode}

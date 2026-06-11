@@ -3,6 +3,7 @@
 Import into any notebook's imports cell alongside its companion module.
 """
 
+import math
 from pathlib import Path
 
 # ── Seeds ─────────────────────────────────────────────────────────────────────
@@ -48,7 +49,7 @@ CVA_EM_4_COLOUR = CVA_EM_COLOURS[1]  # kept for backward compatibility
 CONTROLLER_COLOURS: dict[str, str] = {
     "LQG": "#17becf",  # tab:cyan
     "LQI": "#d62728",  # tab:red
-    "MPC": "#8c564b",  # tab:brown
+    "MPC": "#7c3aed",  # violet
 }
 
 FIGURES_PATH  = _REPO / "figures"
@@ -59,4 +60,43 @@ TABLES_PATH   = _REPO / "tables"
 ARM_LINK: float = 30.0   # cm, both arm links equal
 MAX_DELTA: float = 0.25  # rad, IK branch-change continuity guard
 
-CARTESIAN_CONTROL_CACHE_PATH = DATA_DIR / "cartesian_control_cache.npz"
+CARTESIAN_CONTROL_CACHE_PATH   = DATA_DIR / "cartesian_control_cache.npz"
+CARTESIAN_CONTROL_RESULTS_PATH = DATA_DIR / "cartesian_control_results.pkl"
+
+# ── Cartesian control evaluation ──────────────────────────────────────────────
+CC_T               = 1000       # steps per trial
+CC_N_SNAPSHOTS     = 6          # arm posture snapshots in trajectory panel
+CC_TARGET_R_MIN    = 20.0       # cm, inner radius of target grid
+CC_TARGET_R_MAX    = 55.0       # cm, outer radius of target grid
+CC_N_R             = 3          # radial rings
+CC_N_THETA         = 8          # angular targets per ring
+CC_DIST_THRESH     = 10.0       # cm, threshold for time-to-target metric
+CC_DEMO_IDX        = 0          # trial index used in trajectory panels
+CC_DEMO_SEED       = 0          # Brain seed for all evaluation trials
+
+# Controller parameters
+CC_Q_TRACK         = 10.0
+CC_R_EFFORT        = 80.0
+CC_Q_INT           = 0.5
+CC_EL_THRESH       = 0.15       # rad
+CC_SH_THRESH       = 0.15       # rad
+CC_SH_DRIFT_THRESH = math.pi / 2  # rad
+CC_MIN_PHASE_STEPS = 25
+CC_MAX_PHASE_STEPS = 75
+CC_SEQ_BLEND_ALPHA = 0.15
+CC_SH_VEL_DAMP     = 20.0
+CC_EL_HOLD_ALPHA   = 0.4
+CC_AMP_REG         = 5e-3
+
+# Per-band amplitude ceilings
+CC_A_MAX_SH_POS = 1.0
+CC_A_MAX_SH_NEG = 1.0
+CC_A_MAX_EL_POS = 1.0
+CC_A_MAX_EL_NEG = 1.0
+
+# Per-band gain scaling [S+, S−, E+, E−]
+CC_BAND_SCALE       = [1.0, 1.0, 0.3, 0.3]
+CC_CONSTRAIN_ELBOW  = False
+CC_USE_LQI          = False
+CC_BAND_CHANNELS    = None       # list[tuple[float, float]] | None
+CC_OPEN_LOOP_OFFSET = 0.5

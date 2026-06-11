@@ -1136,3 +1136,177 @@ def debug_plot_trajectories(
     ax_ang.legend(frameon=False, fontsize=7)
 
     plt.show()
+
+
+# ── Cartesian control evaluation (cached) ─────────────────────────────────────
+
+
+def run_cartesian_control(
+    cache_path: Path,
+    results_path: Path,
+    estimator_path: Path,
+    T: int,
+    demo_seed: int,
+    n_r: int,
+    n_theta: int,
+    target_r_min: float,
+    target_r_max: float,
+    dist_thresh: float,
+    arm_link: float,
+    max_delta: float,
+    q_track: float = 10.0,
+    r_effort: float = 80.0,
+    q_int: float = 0.5,
+    el_thresh: float = 0.15,
+    sh_thresh: float = 0.15,
+    sh_drift_thresh: float = np.pi / 2,
+    min_phase_steps: int = 25,
+    max_phase_steps: int = 75,
+    seq_blend_alpha: float = 0.15,
+    sh_vel_damp: float = 20.0,
+    el_hold_alpha: float = 0.4,
+    a_max_sh_pos: float = 1.0,
+    a_max_sh_neg: float = 1.0,
+    a_max_el_pos: float = 1.0,
+    a_max_el_neg: float = 1.0,
+    amp_reg: float = 5e-3,
+    band_scale: list[float] | None = None,
+    constrain_elbow: bool = False,
+    use_lqi: bool = False,
+    band_channels: list[tuple[float, float]] | None = None,
+    open_loop_offset: float = 0.5,
+) -> tuple[list[dict], list[tuple[float, float]], np.ndarray]:
+    """Run the Cartesian control evaluation, caching results to disk.
+
+    Returns ``(results, targets, r_grid)``.  If all constants and the
+    gain-matrix cache on disk are unchanged, the previously saved results are
+    loaded and returned immediately without re-running the simulation.
+    """
+    import hashlib
+    import json
+    import pickle
+
+    # Load gain-matrix cache so its contents enter the hash
+    gain_cache = np.load(cache_path)
+    band_freqs: list[float] = gain_cache["band_freqs"].tolist()
+    M: np.ndarray = gain_cache["gain_matrix"]
+    y_mean: np.ndarray = gain_cache["y_mean"]
+    target_offset: float = float(gain_cache["target_offset"])
+    x1_proj: np.ndarray | None = (
+        gain_cache["x1_proj"] if "x1_proj" in gain_cache else None
+    )
+
+    # Load model
+    from system_estimate import SystemEstimate
+    from bmi_control import SystemModel
+
+    est = SystemEstimate.load(estimator_path)
+    model = SystemModel.from_estimate(est, y_mean=y_mean)
+
+    # Build hash over all inputs that affect simulation output
+    hash_dict: dict = {
+        "T": T,
+        "demo_seed": demo_seed,
+        "n_r": n_r,
+        "n_theta": n_theta,
+        "target_r_min": target_r_min,
+        "target_r_max": target_r_max,
+        "dist_thresh": dist_thresh,
+        "arm_link": arm_link,
+        "max_delta": max_delta,
+        "q_track": q_track,
+        "r_effort": r_effort,
+        "q_int": q_int,
+        "el_thresh": el_thresh,
+        "sh_thresh": sh_thresh,
+        "sh_drift_thresh": sh_drift_thresh,
+        "min_phase_steps": min_phase_steps,
+        "max_phase_steps": max_phase_steps,
+        "seq_blend_alpha": seq_blend_alpha,
+        "sh_vel_damp": sh_vel_damp,
+        "el_hold_alpha": el_hold_alpha,
+        "a_max_sh_pos": a_max_sh_pos,
+        "a_max_sh_neg": a_max_sh_neg,
+        "a_max_el_pos": a_max_el_pos,
+        "a_max_el_neg": a_max_el_neg,
+        "amp_reg": amp_reg,
+        "band_scale": band_scale,
+        "constrain_elbow": constrain_elbow,
+        "use_lqi": use_lqi,
+        "band_channels": band_channels,
+        "open_loop_offset": open_loop_offset,
+        "band_freqs": band_freqs,
+        "gain_matrix": M.tolist(),
+        "y_mean_md5": hashlib.md5(y_mean.tobytes()).hexdigest(),
+        "target_offset": target_offset,
+        "estimator_path": str(estimator_path),
+    }
+    constants_hash = hashlib.sha256(
+        json.dumps(hash_dict, sort_keys=True, default=str).encode()
+    ).hexdigest()
+
+    # Return cached results if hash matches
+    hash_path = results_path.with_suffix(".hash")
+    if results_path.exists() and hash_path.exists():
+        if hash_path.read_text().strip() == constants_hash:
+            print(f"Loading cached results from {results_path.name}")
+            with open(results_path, "rb") as fh:
+                data = pickle.load(fh)
+            return data["results"], data["targets"], data["r_grid"]
+
+    # Build target grid
+    r_grid = np.linspace(target_r_min, target_r_max, n_r)
+    theta_grid = np.linspace(-np.pi, np.pi, n_theta, endpoint=False)
+    R_mg, TH_mg = np.meshgrid(r_grid, theta_grid, indexing="ij")
+    targets: list[tuple[float, float]] = [
+        (
+            float(R_mg[ri, ti] * np.cos(TH_mg[ri, ti])),
+            float(R_mg[ri, ti] * np.sin(TH_mg[ri, ti])),
+        )
+        for ri in range(n_r)
+        for ti in range(n_theta)
+    ]
+    n_trials = len(targets)
+
+    # Run simulation
+    from joblib import Parallel, delayed
+    from tqdm.auto import tqdm
+
+    jobs = [
+        (
+            tgt, i, demo_seed,
+            band_freqs, M,
+            model.A, model.B, model.C, model.Q, model.R, y_mean,
+            target_offset, x1_proj,
+            T, arm_link, max_delta, dist_thresh,
+            q_track, r_effort, q_int,
+            el_thresh, sh_thresh, sh_drift_thresh,
+            min_phase_steps, max_phase_steps,
+            seq_blend_alpha, sh_vel_damp, el_hold_alpha,
+            a_max_sh_pos, a_max_sh_neg, a_max_el_pos, a_max_el_neg,
+            amp_reg, band_scale, constrain_elbow,
+            use_lqi, band_channels, open_loop_offset,
+        )
+        for i, tgt in enumerate(targets)
+    ]
+
+    results: list[dict] = [None] * n_trials  # type: ignore[list-item]
+    with tqdm(total=n_trials, desc="Evaluating", unit="trial") as pbar:
+        for res in Parallel(n_jobs=-1, return_as="generator_unordered")(
+            delayed(_eval_trial)(*job) for job in jobs
+        ):
+            results[res["trial_idx"]] = res
+            pbar.set_postfix(
+                target=f"({res['target'][0]:.0f},{res['target'][1]:.0f})",
+                final_dist=f"{res['dist'][-1]:.1f} cm",
+            )
+            pbar.update(1)
+
+    # Persist to disk
+    results_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(results_path, "wb") as fh:
+        pickle.dump({"results": results, "targets": targets, "r_grid": r_grid}, fh)
+    hash_path.write_text(constants_hash)
+    print(f"Results saved to {results_path.name}")
+
+    return results, targets, r_grid
