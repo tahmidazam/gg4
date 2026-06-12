@@ -5,6 +5,11 @@ main.log
 main.synctex.gz
 main.xdv
 main.out
+main.blg
+main.bcf-SAVE-ERROR
+main.bcf
+main.bbl
+main.run.xml
 
 context/
 

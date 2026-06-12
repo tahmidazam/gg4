@@ -56,6 +56,16 @@
 % Layout
 \usepackage{float}
 
+% Headers and footers
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}                                  % clear all header/footer fields
+\fancyhead[L]{Tahmid Azam}
+\fancyhead[R]{Final Report (GG4)}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}        % rule between header and content
+\renewcommand{\footrulewidth}{0.4pt}        % rule between content and footer
+
 % Acrynoyms
 \usepackage{acro}
 
@@ -141,6 +151,7 @@
 
 
 \begin{document}
+\thispagestyle{empty}                       % no header/footer on the title page
 \noindent {\Large \textbf{Final Report}}
 
 \vspace{0.5em}
