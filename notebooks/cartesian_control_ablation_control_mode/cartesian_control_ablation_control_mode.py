@@ -27,7 +27,7 @@ def make_control_mode_figure(
 
     colours = {
         "Open-loop": ERA_EM_COLOURS[0],
-        "LQI":       CONTROLLER_COLOURS["LQI"],
+        "LQI": CONTROLLER_COLOURS["LQI"],
     }
     return make_bar_ablation_figure(
         ablation_results,

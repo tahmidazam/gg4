@@ -1,4 +1,4 @@
-"""Shared container for a linear Gaussian state-space model estimate."""
+"""Container for a linear Gaussian state-space model estimate."""
 
 from __future__ import annotations
 
@@ -20,7 +20,9 @@ class SystemEstimate:
     label:
         Human-readable label for plots, e.g. ``"ERA"``, ``"CVA+EM"``.
     colour:
-        Matplotlib colour string used consistently across all figures.
+        Matplotlib colour string used consistently across all figures.  Set by
+        the caller (a notebook) at fit time; the package never hardcodes report
+        colours.
     A, B, C, Q, R:
         Identified system matrices for the LGSSM
         ``x(t+1) = A x(t) + B u(t) + w(t)``, ``y(t) = C x(t) + v(t)``,

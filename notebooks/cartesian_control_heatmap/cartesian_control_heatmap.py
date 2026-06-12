@@ -31,25 +31,51 @@ def make_heatmap_figure(
     tgt_x = np.array([t[0] for t in targets])
     tgt_y = np.array([t[1] for t in targets])
 
-    span    = 2 * arm_link
+    span = 2 * arm_link
     theta_ws = np.linspace(0, 2 * np.pi, 300)
-    cmap    = LinearSegmentedColormap.from_list("gr", ["#2ca02c", "#d62728"])
-    norm    = Normalize(vmin=0, vmax=120)
+    cmap = LinearSegmentedColormap.from_list("gr", ["#2ca02c", "#d62728"])
+    norm = Normalize(vmin=0, vmax=120)
 
     fig, ax = plt.subplots(figsize=figsize, layout="constrained")
 
     ax.plot(
-        span * np.cos(theta_ws), span * np.sin(theta_ws),
-        color="grey", lw=0.8, alpha=0.5, zorder=1,
+        span * np.cos(theta_ws),
+        span * np.sin(theta_ws),
+        color="grey",
+        lw=0.8,
+        alpha=0.5,
+        zorder=1,
     )
     sc = ax.scatter(
-        tgt_x, tgt_y, c=final_dist, cmap=cmap, norm=norm,
-        s=150, zorder=3, linewidths=0.8, edgecolors="white",
+        tgt_x,
+        tgt_y,
+        c=final_dist,
+        cmap=cmap,
+        norm=norm,
+        s=150,
+        zorder=3,
+        linewidths=0.8,
+        edgecolors="white",
     )
     for xi, yi, di in zip(tgt_x, tgt_y, final_dist):
-        ax.text(xi, yi - 3.5, f"{di:.1f}", ha="center", va="top",
-                fontsize=6, color="0.2", zorder=4)
-    fig.colorbar(sc, ax=ax, label="Final distance (cm)", orientation="vertical", fraction=0.046, pad=0.04)
+        ax.text(
+            xi,
+            yi - 3.5,
+            f"{di:.1f}",
+            ha="center",
+            va="top",
+            fontsize=6,
+            color="0.2",
+            zorder=4,
+        )
+    fig.colorbar(
+        sc,
+        ax=ax,
+        label="Final distance (cm)",
+        orientation="vertical",
+        fraction=0.046,
+        pad=0.04,
+    )
     ax.scatter(0, 0, s=50, color="k", zorder=6)
     ax.set_aspect("equal")
     ax.set_xlabel("$x$ (cm)")

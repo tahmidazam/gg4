@@ -456,7 +456,11 @@
   E$+$, and E$-$. The next step is gain calibration, where a short closed-loop
   \LQI trial at each band frequency targets a sinusoidal spectral setpoint, and
   mean joint angle per unit amplitude forms a $2\times4$ gain matrix where rows
-  are joints, and columns are bands. The third is the main control loop, where
+  are joints, and columns are bands. Cross-talk is re-identified here.
+
+  \pgffigure[H]{gain_matrix}
+
+  The third is the main control loop, where
   inverse kinematics converts Cartesian targets to joint-angle goals, band
   amplitudes are solved from the gain matrix, and an \LQI controller optionally
   closes the loop on the population mean.

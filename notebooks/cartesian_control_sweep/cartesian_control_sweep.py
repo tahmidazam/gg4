@@ -1,146 +1,27 @@
-"""Bayesian optimisation sweep and default-vs-optimal comparison figure."""
+"""Bayesian-optimisation sweep figure (default vs. optimal comparison).
+
+The sweep machinery (``sweep_params``, ``_run_subset``) and metrics
+(``compute_metrics``, ``_sweep_score``) live in :mod:`submission.evaluation`;
+this module keeps only the figure.
+"""
 
 from __future__ import annotations
 
 import sys
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 sys.path.insert(0, str((Path(__file__).parent.parent / "shared").resolve()))
+sys.path.insert(
+    0, str(Path(__file__).resolve().parents[2])
+)  # repo root for `submission`
 from pgf_utils import notebook_github_url
-from cartesian_control import _eval_trial, compute_metrics
+from submission import compute_metrics
 
 NOTEBOOK_GITHUB_URL = notebook_github_url(__file__)
-
-
-def _run_subset(
-    params: dict,
-    targets: list[tuple[float, float]],
-    *,
-    band_freqs: list[float],
-    M: np.ndarray,
-    A: np.ndarray,
-    B: np.ndarray,
-    C: np.ndarray,
-    Q: np.ndarray,
-    R: np.ndarray,
-    y_mean: np.ndarray,
-    target_offset: float,
-    x1_proj: np.ndarray | None,
-    seed: int,
-    T: int,
-    arm_link: float,
-    max_delta: float,
-    dist_thresh: float,
-    q_track: float = 10.0,
-    r_effort: float = 80.0,
-    q_int: float = 0.5,
-    el_thresh: float = 0.15,
-    sh_thresh: float = 0.15,
-    sh_drift_thresh: float = np.pi / 2,
-    min_phase_steps: int = 25,
-    max_phase_steps: int = 75,
-    seq_blend_alpha: float = 0.15,
-    sh_vel_damp: float = 20.0,
-    el_hold_alpha: float = 0.4,
-    a_max_sh_pos: float = 1.0,
-    a_max_sh_neg: float = 1.0,
-    a_max_el_pos: float = 1.0,
-    a_max_el_neg: float = 1.0,
-    amp_reg: float = 5e-3,
-    band_scale: list[float] | None = None,
-    constrain_elbow: bool = False,
-    use_lqi: bool = False,
-    band_channels: list[tuple[float, float]] | None = None,
-    open_loop_offset: float = 0.5,
-) -> list[dict]:
-    """Evaluate one parameter config on ``targets``; return per-trial results.
-
-    ``params`` overrides any of the named base-parameter keyword arguments.
-    Parallelised with joblib over targets.
-    """
-    from joblib import Parallel, delayed
-
-    p = dict(
-        q_track=q_track,
-        r_effort=r_effort,
-        q_int=q_int,
-        el_thresh=el_thresh,
-        sh_thresh=sh_thresh,
-        sh_drift_thresh=sh_drift_thresh,
-        min_phase_steps=min_phase_steps,
-        max_phase_steps=max_phase_steps,
-        seq_blend_alpha=seq_blend_alpha,
-        sh_vel_damp=sh_vel_damp,
-        el_hold_alpha=el_hold_alpha,
-        a_max_sh_pos=a_max_sh_pos,
-        a_max_sh_neg=a_max_sh_neg,
-        a_max_el_pos=a_max_el_pos,
-        a_max_el_neg=a_max_el_neg,
-        amp_reg=amp_reg,
-        band_scale=band_scale,
-        constrain_elbow=constrain_elbow,
-        use_lqi=use_lqi,
-        band_channels=band_channels,
-        open_loop_offset=open_loop_offset,
-    )
-    p.update(params)
-
-    jobs = [
-        (
-            tgt,
-            i,
-            seed,
-            band_freqs,
-            M,
-            A,
-            B,
-            C,
-            Q,
-            R,
-            y_mean,
-            target_offset,
-            x1_proj,
-            T,
-            arm_link,
-            max_delta,
-            dist_thresh,
-            p["q_track"],
-            p["r_effort"],
-            p["q_int"],
-            p["el_thresh"],
-            p["sh_thresh"],
-            p["sh_drift_thresh"],
-            p["min_phase_steps"],
-            p["max_phase_steps"],
-            p["seq_blend_alpha"],
-            p["sh_vel_damp"],
-            p["el_hold_alpha"],
-            p["a_max_sh_pos"],
-            p["a_max_sh_neg"],
-            p["a_max_el_pos"],
-            p["a_max_el_neg"],
-            p["amp_reg"],
-            p["band_scale"],
-            p["constrain_elbow"],
-            p["use_lqi"],
-            p["band_channels"],
-            p["open_loop_offset"],
-        )
-        for i, tgt in enumerate(targets)
-    ]
-
-    results: list[dict | None] = [None] * len(targets)
-    for res in Parallel(n_jobs=-1, return_as="generator_unordered")(
-        delayed(_eval_trial)(*job) for job in jobs
-    ):
-        results[res["trial_idx"]] = res
-
-    # Every slot was filled by the parallel loop above; narrow away `None`.
-    return cast("list[dict]", results)
 
 
 def make_sweep_figure(
@@ -160,7 +41,8 @@ def make_sweep_figure(
     All bars use sparse y-axis ticks and the metric name as the title.
     """
     import math
-    from constants import ERA_EM_COLOURS, CONTROLLER_COLOURS
+
+    from constants import CONTROLLER_COLOURS, ERA_EM_COLOURS
 
     trials = [t for t in study.trials if t.value is not None]
 

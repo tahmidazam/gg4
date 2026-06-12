@@ -9,8 +9,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 sys.path.insert(0, str((Path(__file__).parent.parent / "shared").resolve()))
+sys.path.insert(
+    0, str(Path(__file__).resolve().parents[2])
+)  # repo root for `submission`
 from pgf_utils import notebook_github_url
-from cartesian_control import compute_metrics
+from submission import compute_metrics
 
 NOTEBOOK_GITHUB_URL = notebook_github_url(__file__)
 

@@ -15,16 +15,17 @@ from pathlib import Path
 
 sys.path.insert(0, str((Path(__file__).parent.parent / "shared").resolve()))
 sys.path.insert(
-    0, str((Path(__file__).parent.parent / "cartesian_control_heatmap").resolve())
-)
+    0, str(Path(__file__).resolve().parents[2])
+)  # repo root for `submission`
 sys.path.insert(
-    0, str((Path(__file__).parent.parent / "cartesian_control_sweep").resolve())
+    0, str((Path(__file__).parent.parent / "cartesian_control_heatmap").resolve())
 )
 from pgf_utils import notebook_github_url
 
-# Re-exported so the notebook imports plotting and sweep helpers from one place
-# without putting sibling notebook folders on its own sys.path.
+# Re-exported so the notebook imports the plotting and sweep helpers from one
+# place: the heatmap figure from the sibling notebook, the sweep helper from the
+# submission package.
 from cartesian_control_heatmap import make_heatmap_figure  # noqa: F401
-from cartesian_control_sweep import _run_subset  # noqa: F401
+from submission import _run_subset  # noqa: F401
 
 NOTEBOOK_GITHUB_URL = notebook_github_url(__file__)

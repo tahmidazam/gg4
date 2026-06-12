@@ -1,9 +1,4 @@
-"""Shared ERA data-collection utilities.
-
-Both the latent-dimension selection notebook and the ERA identification notebook
-depend on these functions, so they live here rather than in either notebook's
-own module folder.
-"""
+"""Markov-parameter collection and block-Hankel construction for ERA."""
 
 from __future__ import annotations
 
@@ -97,9 +92,9 @@ def estimate_markov_ols(
         U[t] = u_t
         Y[t] = brain.measure()
 
-    # build block-Toeplitz regressor (vectorised over lags):
+    # build block-Toeplitz regressor (vectorised over lags), valid length
+    # T_valid = n_samples - n_markov + 1:
     #   Phi[i] = [U[t], U[t-1], ..., U[t-n_markov+1]]  where t = i + n_markov - 1
-    T_valid = n_samples - n_markov + 1
     Phi = np.hstack([U[n_markov - 1 - k : n_samples - k] for k in range(n_markov)])
     # shape: (T_valid, n_markov * p)
 

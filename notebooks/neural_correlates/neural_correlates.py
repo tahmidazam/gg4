@@ -1,9 +1,7 @@
-"""Neural correlates of muscle selection.
+"""Neural correlates of muscle selection — amplitude-profile figure.
 
-For each of the four muscle-selection frequencies from Experiment 1, a
-sustained open-loop sinusoidal trial records the full 16D neural observation
-y(t).  The amplitude spectrum of each neuron reveals which dimensions carry
-energy at the selection frequency for each muscle.
+The trial runner and spectral helpers live in
+:mod:`submission.estimation.characterisation`; this module keeps only the figure.
 """
 
 from __future__ import annotations
@@ -21,107 +19,6 @@ if TYPE_CHECKING:
     from matplotlib.figure import Figure
 
 NOTEBOOK_GITHUB_URL = notebook_github_url(__file__)
-
-
-# ── Trial runner ──────────────────────────────────────────────────────────────
-
-
-def run_neural_trial(
-    freq: float,
-    u0_scale: float,
-    u1_scale: float,
-    seed: int,
-    *,
-    offset: float,
-    amplitude: float,
-    t_trial: int,
-    t_burnin: int,
-) -> np.ndarray:
-    """Run one open-loop sinusoidal trial; return neural observations.
-
-    Drives the brain with:
-        u0 = offset + amplitude * u0_scale * sin(2π freq t)
-        u1 = offset + amplitude * u1_scale * sin(2π freq t)
-
-    Returns Y of shape (t_trial, 16).
-    """
-    import sys as _sys
-    from pathlib import Path as _Path
-
-    _provided = str((_Path(__file__).parent.parent.parent / "provided").resolve())
-    if _provided not in _sys.path:
-        _sys.path.insert(0, _provided)
-    from GG4 import Brain
-
-    brain = Brain(random_seed=seed)
-    for _ in range(t_burnin):
-        brain.next_state()
-
-    Y = np.empty((t_trial, 16))
-    for t in range(t_trial):
-        s = amplitude * np.sin(2 * np.pi * freq * t)
-        brain.next_state([offset + s * u0_scale, offset + s * u1_scale])
-        Y[t] = np.array(brain.measure())
-    return Y
-
-
-def _neural_trial_job(
-    bi: int,
-    si: int,
-    freq: float,
-    u0_scale: float,
-    u1_scale: float,
-    seed: int,
-    **kw,
-) -> tuple[int, int, np.ndarray]:
-    """Joblib wrapper — returns (bi, si, Y) for in-order accumulation."""
-    Y = run_neural_trial(freq, u0_scale, u1_scale, seed, **kw)
-    return bi, si, Y
-
-
-# ── PSD ───────────────────────────────────────────────────────────────────────
-
-
-def compute_psd_matrix(Y: np.ndarray, n_fft: int) -> tuple[np.ndarray, np.ndarray]:
-    """One-sided amplitude spectrum for each neuron.
-
-    Uses the last n_fft samples of Y to reduce transient contamination.
-
-    Returns
-    -------
-    freqs : (n_fft // 2 + 1,) in cyc/step
-    psd   : (n_fft // 2 + 1, n_y) amplitude, normalised as (2/n_fft)|FFT|
-    """
-    n_y = Y.shape[1]
-    seg = Y[-n_fft:]
-    freqs = np.fft.rfftfreq(n_fft)
-    psd = np.zeros((len(freqs), n_y))
-    for i in range(n_y):
-        s = seg[:, i] - seg[:, i].mean()
-        psd[:, i] = (2.0 / n_fft) * np.abs(np.fft.rfft(s, n=n_fft))
-    return freqs, psd
-
-
-# ── Figure ────────────────────────────────────────────────────────────────────
-
-
-def amplitude_profiles(
-    freqs: np.ndarray,
-    psd_data: np.ndarray,
-    bands: list[tuple[float, str, str]],
-) -> np.ndarray:
-    """Amplitude at each band's ω_sel per neuron, mean across seeds.
-
-    Returns A of shape (n_bands, n_y).
-    """
-    mean_psd = psd_data.mean(axis=1)  # (n_bands, n_freq, n_y)
-    n_bands = len(bands)
-    n_y = psd_data.shape[-1]
-    A = np.zeros((n_bands, n_y))
-    for bi, (freq, _, _) in enumerate(bands):
-        bin_idx = int(np.argmin(np.abs(freqs - freq)))
-        A[bi] = mean_psd[bi, bin_idx, :]
-    return A
 
 
 def make_neural_correlates_figure(

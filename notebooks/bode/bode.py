@@ -1,4 +1,8 @@
-"""Bode plot comparison: empirical vs. identified model frequency responses."""
+"""Bode plot comparison figure: empirical vs. identified model frequency responses.
+
+The transfer-function computations live in
+:mod:`submission.estimation.characterisation`; this module keeps only the figure.
+"""
 
 from __future__ import annotations
 
@@ -16,44 +20,6 @@ NOTEBOOK_GITHUB_URL = notebook_github_url(__file__)
 
 # Neutral colour used for the empirical (ground-truth) trace
 _EMP_COLOUR = "black"
-
-
-def compute_analytic_bode(
-    A: np.ndarray,
-    B: np.ndarray,
-    C: np.ndarray,
-    freqs: np.ndarray,
-) -> np.ndarray:
-    """Evaluate H(e^{jω}) = z·C(zI − A)^{−1}B at each angular frequency.
-
-    The leading z aligns with the empirical DFT convention where the
-    lag-0 index holds h(1) = CB, so the DFT gives z·H(z) rather than H(z).
-
-    Returns complex array of shape (len(freqs), q, p).
-    """
-    n = A.shape[0]
-    eye = np.eye(n)
-    H = np.empty((len(freqs), C.shape[0], B.shape[1]), dtype=complex)
-    for k, omega in enumerate(freqs):
-        z = np.exp(1j * omega)
-        H[k] = z * (C @ np.linalg.solve(z * eye - A, B))
-    return H
-
-
-def compute_empirical_bode(
-    markov: np.ndarray,
-    n_fft: int | None = None,
-) -> tuple[np.ndarray, np.ndarray]:
-    """Compute empirical H(e^{jω}) via DFT of Markov parameters.
-
-    markov : (N, q, p)
-    Returns (freqs, H_emp) with freqs ∈ [0, π] rad/sample.
-    """
-    if n_fft is None:
-        n_fft = markov.shape[0]
-    H_emp = np.fft.rfft(markov, n=n_fft, axis=0)
-    freqs = np.fft.rfftfreq(n_fft) * 2 * np.pi
-    return freqs, H_emp
 
 
 def make_bode_figure(

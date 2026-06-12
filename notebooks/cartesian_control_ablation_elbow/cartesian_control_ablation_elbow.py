@@ -27,7 +27,7 @@ def make_elbow_figure(
 
     colours = {
         "Unconstrained": ERA_EM_COLOURS[0],
-        "Constrained":   CONTROLLER_COLOURS["LQI"],
+        "Constrained": CONTROLLER_COLOURS["LQI"],
     }
     return make_bar_ablation_figure(
         ablation_results,

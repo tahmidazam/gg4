@@ -106,25 +106,24 @@ def notebook_github_url(source_file: str | Path) -> str:
     via ``git``.
     """
     import subprocess
+
     path = Path(source_file).resolve()
     root = Path(
         subprocess.check_output(
             ["git", "rev-parse", "--show-toplevel"], cwd=path.parent
-        ).decode().strip()
+        )
+        .decode()
+        .strip()
     ).resolve()
     rel = path.relative_to(root)
     if rel.suffix == ".py":
         rel = rel.with_suffix(".ipynb")
     remote = (
-        subprocess.check_output(
-            ["git", "remote", "get-url", "origin"], cwd=root
-        )
+        subprocess.check_output(["git", "remote", "get-url", "origin"], cwd=root)
         .decode()
         .strip()
     )
-    base = remote.removesuffix(".git").replace(
-        "git@github.com:", "https://github.com/"
-    )
+    base = remote.removesuffix(".git").replace("git@github.com:", "https://github.com/")
     return f"{base}/blob/main/{rel}"
 
 

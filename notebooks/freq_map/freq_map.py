@@ -1,4 +1,8 @@
-"""Per-neuron frequency selectivity: empirical and analytic transfer function magnitude."""
+"""Per-neuron frequency selectivity figure.
+
+The transfer-function computations live in
+:mod:`submission.estimation.characterisation`; this module keeps only the figure.
+"""
 
 from __future__ import annotations
 
@@ -14,50 +18,6 @@ sys.path.insert(0, str((Path(__file__).parent.parent / "shared").resolve()))
 from pgf_utils import notebook_github_url
 
 NOTEBOOK_GITHUB_URL = notebook_github_url(__file__)
-
-
-def compute_analytic_response(
-    A: np.ndarray,
-    B: np.ndarray,
-    C: np.ndarray,
-    freqs: np.ndarray,
-) -> np.ndarray:
-    """Evaluate H(e^{jω}) = z·C(zI − A)^{−1}B at each angular frequency.
-
-    The leading z aligns with the empirical DFT convention (lag-0 holds h(1) = CB).
-
-    Returns complex array of shape (len(freqs), q, p).
-    """
-    n = A.shape[0]
-    eye = np.eye(n)
-    H = np.empty((len(freqs), C.shape[0], B.shape[1]), dtype=complex)
-    for k, omega in enumerate(freqs):
-        z = np.exp(1j * omega)
-        H[k] = z * (C @ np.linalg.solve(z * eye - A, B))
-    return H
-
-
-def compute_empirical_response(
-    markov: np.ndarray,
-    n_fft: int | None = None,
-) -> tuple[np.ndarray, np.ndarray]:
-    """Compute H(e^{jω}) via DFT of Markov parameters.
-
-    Parameters
-    ----------
-    markov : (N, q, p) Markov parameter tensor
-    n_fft  : FFT length (zero-pads if larger than N)
-
-    Returns
-    -------
-    freqs : (n_fft//2 + 1,) angular frequency grid in [0, π] rad/sample
-    H_emp : (n_fft//2 + 1, q, p) complex empirical response
-    """
-    if n_fft is None:
-        n_fft = markov.shape[0]
-    H_emp = np.fft.rfft(markov, n=n_fft, axis=0)
-    freqs = np.fft.rfftfreq(n_fft) * 2 * np.pi
-    return freqs, H_emp
 
 
 def make_freq_map_figure(
@@ -102,11 +62,7 @@ def make_freq_map_figure(
     ]
 
     # Shared log-scale colour normalisation; skip DC (undefined on log scale)
-    all_mags = [
-        np.abs(H[1:, :, i])
-        for col_title, H in columns
-        for i in range(p)
-    ]
+    all_mags = [np.abs(H[1:, :, i]) for col_title, H in columns for i in range(p)]
     vmin = max(min(float(m.min()) for m in all_mags), 1e-12)
     vmax = max(float(m.max()) for m in all_mags)
     norm = matplotlib.colors.LogNorm(vmin=vmin, vmax=vmax)
