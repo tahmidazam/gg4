@@ -41,6 +41,7 @@ extra-paths = [
     "notebooks/cartesian_control_effort",
     "notebooks/cartesian_control_errors",
     "notebooks/cartesian_control_heatmap",
+    "notebooks/cartesian_control_pipeline_robustness",
     "notebooks/cartesian_control_robustness",
     "notebooks/cartesian_control_sweep",
     "notebooks/cartesian_control_trajectory",

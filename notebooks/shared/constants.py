@@ -119,3 +119,5 @@ CC_BO_STUDY_PATH_CONSTRAINED = DATA_DIR / "cc_bo_study_constrained.db"
 CC_OPTIMAL_PARAMS_PATH_CONSTRAINED = DATA_DIR / "cc_optimal_params_constrained.json"
 CC_ROBUST_RESULTS_DIR = DATA_DIR / "cc_robust"
 CC_ABLATION_RESULTS_DIR = DATA_DIR / "cc_ablation"
+# End-to-end per-seed pipeline robustness: one cached bundle per seed.
+CC_PIPELINE_ROBUST_RESULTS_DIR = DATA_DIR / "cc_pipeline_robust"
