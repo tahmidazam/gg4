@@ -149,7 +149,7 @@ def make_spectral_control_figure(
         ax_obs.set_yticks([1, 8, n_y])
         ax_obs.tick_params(labelbottom=False)
         if col == 0:
-            ax_obs.set_ylabel("neuron")
+            ax_obs.set_ylabel("neurone")
 
         # ── Row 2: input heatmap ──────────────────────────────────────────────
         ax_u = fig.add_subplot(gs_t[2, col], sharex=ax_y)
@@ -195,7 +195,7 @@ def make_spectral_control_figure(
         ax_freq.set_yticks([1, 8, n_y])
         ax_freq.set_xlabel(r"$\omega$ (rad\,sample$^{-1}$)")
         if col == 0:
-            ax_freq.set_ylabel("neuron")
+            ax_freq.set_ylabel("neurone")
         im_last = im
 
     # ── Single shared vertical colorbar on the far right ─────────────────────

@@ -40,10 +40,6 @@
 \graphicspath{{figures/}}
 \providecommand{\mathdefault}[1]{#1}
 
-% Draft flag: \renderfiguresfalse = fast (placeholder boxes), \renderfigurestrue = full render
-\newif\ifrenderfigures
-\renderfigurestrue
-
 % Units
 \usepackage{siunitx}
 
@@ -73,6 +69,9 @@
 \usepackage[style=numeric,sortcites]{biblatex}
 \addbibresource{references.bib}
 
+% Render in-text citations as superscript numbers
+\let\cite\supercite
+
 \DeclareAcronym{bmi}{short=BMI,long=Brain--Machine Interface}
 \DeclareAcronym{lgssm}{short=LGSSM,long=Linear Gaussian State--Space Model}
 \DeclareAcronym{ols}{short=OLS,long=Ordinary Least Squares}
@@ -95,22 +94,14 @@
   \IfBooleanTF{#1}{%
     \begin{figure*}[#2]%
       \centering%
-      \ifrenderfigures%
-        \input{figures/#3.pgf}%
-      \else%
-        \fbox{\texttt{figures/\detokenize{#3}.pgf}}%
-      \fi%
+      \input{figures/#3.pgf}%
       \caption{\protect\input{captions/#3.tex}}%
       \label{fig:#3}%
     \end{figure*}%
   }{%
     \begin{figure}[#2]%
       \centering%
-      \ifrenderfigures%
-        \input{figures/#3.pgf}%
-      \else%
-        \fbox{\texttt{figures/\detokenize{#3}.pgf}}%
-      \fi%
+      \input{figures/#3.pgf}%
       \caption{\protect\input{captions/#3.tex}}%
       \label{fig:#3}%
     \end{figure}%
@@ -167,15 +158,16 @@
   We are provided a simulation of a prosthetic hand controlled through a fixed
   \BMI driven by a black-box \LGSSM \Brain, where only 16-dimensional \Brain
   observations and Cartesian hand position are available as feedback. We
-  identify system matrices using \ac{era} and \ac{em} with latent dimension
-  $n_x=4$, highlighting benefits over \ac{cva} and \ac{em}. We demonstrate
+  identify system matrices using \ac{era}+\ac{em} with latent dimension
+  $n_x=4$, reconstructing the frequency response of both inputs where
+  \ac{cva}+\ac{em} captures only the first. We demonstrate
   control over the population mean frequency spectrum, showing the strengths
   of \LQI over \LQG and \MPC in \ac{rms} error. We develop a pipeline to control
   the hand via 2 antagonistic muscle pairs which act on the shoulder and elbow
   joints that involves frequency band identification, gain matrix estimation,
   and a sequential damped strategy which mitigates issues of cross-talk. We
-  achieve a final distance of $3.9 \pm 2.76$ with a time to the
-  \SI{10}{\centi\metre} threshold of $308 \pm 155$ steps, with a 100\% threshold reach
+  achieve a final distance of $3.95 \pm 1.42$\,cm with a time to the
+  \SI{10}{\centi\metre} threshold of $309 \pm 147$ steps, with a 100\% threshold reach
   rate. We find that the system's linearity permits a rhythm-based \BMI to be run
   open-loop.
 \end{abstract}
@@ -202,7 +194,7 @@
   rolling history of $x_1$, which is passed through 4 fixed band-pass filters
   which measure how strongly $x_1$ oscillates at that muscle's defined
   excitation frequency. A history of $x_2$ is also stored in state, and the
-  current value is compared to a half-- and full--period in the past: if strong
+  current value is compared to a half- and full-period in the past: if strong
   oscillation is found, evidence accumulates; otherwise, evidence decays,
   producing a smooth power state. Muscle activation is the product of the power state
   and the selection vector. Each muscle produces force proportional to its
@@ -299,8 +291,9 @@
   \pgffigure[H]{latent_dim}
 
   We plot a heatmap of $|H(\mathrm{e}^{\mathrm{j}\omega})|$ and find that
-  \ac{cva} and \ac{em} reconstruct $u_1$ well, but not $u_2$ over all $n_x$
-  candidates $\{2, 4, 6\}$ (\autoref{fig:freq_map}, N.B. only $n_x=4$ plotted).
+  \ac{cva}+\ac{em} reconstructs $u_1$ well, but not $u_2$, over all $n_x$
+  candidates $\{2, 4, 6\}$ (\autoref{fig:freq_map} plots \ac{cva}+\ac{em} at
+  $n_x=4$ only).
   \ac{cva} is a subspace method that defines the state as the linear combination
   of past data most correlated with future data. \ac{em} is an iterative
   maximum-likelihood estimator, where the E-step runs a Kalman smoother to infer
@@ -369,7 +362,7 @@
 
   \pgffigure[H]{spectral_control_metrics}
 
-  \section{Hand control}
+  \section*{Hand control}
 
   The \BMI's mechanism of muscle selection and a shared power state means
   that simultaneous control of different muscles is unlikely, as there is no
@@ -438,7 +431,7 @@
   \pgffigure[H]{neural_correlates}
 
   Muscle identity is therefore encoded temporally by the oscillation frequency
-  of $x_1$, not spatially by which neurones are active (\autoref{fig:freq_map}).
+  of $x_1$, not spatially by which neurones are active (\autoref{fig:neural_correlates}).
   No differential weighting of neurones in the spectral control target offers
   muscle selectivity beyond what the \BMI's band-pass filters already provide.
   This justifies controlling the population mean at the spectral target.
@@ -625,6 +618,17 @@
   hand-pick the scoring methods and each component's weights. This trade-off is
   manageable, as it is more convenient to have a predictable, more accurate
   prosthetic that is slow over an erratic, trajectory-inefficient one.
+
+  Several improvements follow from these limitations. The clearest target is the
+  time-to-threshold penalty: driving both joints together, as in the
+  coarse-to-fine scheme a group member trialled, would relax the
+  one-joint-at-a-time constraint that the velocity damping compounds. Closing the
+  loop on a signal that tracks the muscle-selection latent more directly than the
+  population mean could recover the feedback benefit the spectral target failed
+  to deliver, while a richer $u_2$ excitation would expose the modes the
+  single-run estimate buries beneath the noise floor. The hand-tuned objective
+  weights could also be learned from a held-out target distribution to remove a
+  source of bias.
 
   \section*{Conclusion}
 

@@ -73,7 +73,7 @@ def make_neural_correlates_figure(
         )
 
     ax.axhline(1.0, color="k", lw=0.7, ls="--", alpha=0.5)
-    ax.set_xlabel("neuron")
+    ax.set_xlabel("neurone")
     ax.set_ylabel(r"relative amplitude at $\omega^*_\mathrm{sel}$")
     ax.set_xticks(neuron_idx)
     ax.set_xticklabels([str(i) for i in neuron_idx])

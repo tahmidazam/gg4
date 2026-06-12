@@ -1496,7 +1496,7 @@
 \definecolor{textcolor}{rgb}{0.000000,0.000000,0.000000}%
 \pgfsetstrokecolor{textcolor}%
 \pgfsetfillcolor{textcolor}%
-\pgftext[x=0.233028in, y=2.015961in, left, base,rotate=90.000000]{\color{textcolor}{\sffamily\fontsize{8.330000}{9.996000}\selectfont\catcode`\^=\active\def^{\ifmmode\sp\else\^{}\fi}\catcode`\%=\active\def%{\%}Neuron}}%
+\pgftext[x=0.233028in, y=2.015961in, left, base,rotate=90.000000]{\color{textcolor}{\sffamily\fontsize{8.330000}{9.996000}\selectfont\catcode`\^=\active\def^{\ifmmode\sp\else\^{}\fi}\catcode`\%=\active\def%{\%}Neurone}}%
 \end{pgfscope}%
 \begin{pgfscope}%
 \pgfsys@transformshift{0.526667in}{1.687000in}%
@@ -8858,7 +8858,7 @@
 \definecolor{textcolor}{rgb}{0.000000,0.000000,0.000000}%
 \pgfsetstrokecolor{textcolor}%
 \pgfsetfillcolor{textcolor}%
-\pgftext[x=0.233028in, y=0.863324in, left, base,rotate=90.000000]{\color{textcolor}{\sffamily\fontsize{8.330000}{9.996000}\selectfont\catcode`\^=\active\def^{\ifmmode\sp\else\^{}\fi}\catcode`\%=\active\def%{\%}Neuron}}%
+\pgftext[x=0.233028in, y=0.863324in, left, base,rotate=90.000000]{\color{textcolor}{\sffamily\fontsize{8.330000}{9.996000}\selectfont\catcode`\^=\active\def^{\ifmmode\sp\else\^{}\fi}\catcode`\%=\active\def%{\%}Neurone}}%
 \end{pgfscope}%
 \begin{pgfscope}%
 \pgfsys@transformshift{0.526667in}{0.533667in}%

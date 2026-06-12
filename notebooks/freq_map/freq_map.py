@@ -57,8 +57,8 @@ def make_freq_map_figure(
     n_cols = len(columns)
 
     row_labels = [
-        r"Input $u_1$" + "\nNeuron",
-        r"Input $u_2$" + "\nNeuron",
+        r"Input $u_1$" + "\nNeurone",
+        r"Input $u_2$" + "\nNeurone",
     ]
 
     # Shared log-scale colour normalisation; skip DC (undefined on log scale)
