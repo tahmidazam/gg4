@@ -167,7 +167,7 @@ def make_spectral_control_figure(
         ax_u.set_yticks(range(n_u))
         ax_u.set_xlabel(r"$t$ (steps)")
         if col == 0:
-            ax_u.set_yticklabels([rf"$u_{k}$" for k in range(n_u)])
+            ax_u.set_yticklabels([rf"$u_{k + 1}$" for k in range(n_u)])
             ax_u.set_ylabel("input")
         else:
             ax_u.set_yticklabels([])

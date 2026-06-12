@@ -318,14 +318,12 @@
   remained similar between \ac{cva}+\ac{em} and \ac{era}+\ac{em}
   (\autoref{fig:obs_reconstruction}).
 
-  \pgffigure[H]{obs_reconstruction}
-
   As there was not a huge difference between $n_x=4$ and $n_x=6$, we select
   \ac{era}+\ac{em} and $n_x=4$, which yields system matrices visualised in
   \autoref{fig:id}.
 
+  \pgffigure[H]{obs_reconstruction}
   \pgffigure[H]{id}
-
   \pgffigure*{freq_map}
 
   \section*{Closed-loop spectral control of brain observations}
@@ -422,10 +420,6 @@
   \autoref{tab:muscle_selection_freq_sweep} and
   \autoref{fig:muscle_selection_freq_sweep}.
 
-  \latextable[H]{muscle_selection_freq_sweep}
-
-  \pgffigure[H]{muscle_selection_freq_sweep}
-
   We observe that amplitude decreases with frequency, making it harder to drive
   muscles that require higher frequencies. This may be due to the low-pass
   action of the \Brain. We also observe cross-talk for elbow movements but not
@@ -439,6 +433,8 @@
   normalise the per-neurone profile by its own neurone-mean
   (\autoref{fig:neural_correlates}).
 
+  \latextable[H]{muscle_selection_freq_sweep}
+  \pgffigure[H]{muscle_selection_freq_sweep}
   \pgffigure[H]{neural_correlates}
 
   Muscle identity is therefore encoded temporally by the oscillation frequency
@@ -587,7 +583,7 @@
   and compare to re-fitting each seed before application in
   \autoref{fig:cartesian_control_pipeline_robustness}.
 
-  \pgffigure[H]{cartesian_control_pipeline_robustness}
+
 
   We find that control metrics are highly seed-to-seed variable and perform
   poorly until they are re-fit.
@@ -603,6 +599,8 @@
   converged on; their preliminary results also had competitive metrics,
   showing potential that inspired the inclusion of the boolean flag to toggle
   open- vs. closed-loop control in the optimiser.
+
+  \pgffigure[H]{cartesian_control_pipeline_robustness}
 
   \section*{Discussion}
 
