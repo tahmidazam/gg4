@@ -76,7 +76,7 @@ def make_trajectory_figure(
     t_norm = np.linspace(0.0, 1.0, T)
     sc0 = ax_time.scatter(
         hand[:, 0], hand[:, 1], c=t_norm,
-        cmap="plasma", s=6, linewidths=0, zorder=3,
+        cmap="plasma", s=6, linewidths=0, zorder=3, rasterized=True,
     )
     fig.colorbar(
         sc0, ax=ax_time, label="Normalised time",
@@ -102,7 +102,7 @@ def make_trajectory_figure(
     # ── Panel 2: shoulder phase active ────────────────────────────────────────
     sc1 = ax_sh_ph.scatter(
         hand[:, 0], hand[:, 1], c=phase_arr,
-        cmap=_SH_CMAP, vmin=0, vmax=1, s=6, linewidths=0, zorder=3,
+        cmap=_SH_CMAP, vmin=0, vmax=1, s=6, linewidths=0, zorder=3, rasterized=True,
     )
     cb1 = fig.colorbar(
         sc1, ax=ax_sh_ph,
@@ -115,7 +115,7 @@ def make_trajectory_figure(
     # ── Panel 3: elbow phase active ───────────────────────────────────────────
     sc2 = ax_el_ph.scatter(
         hand[:, 0], hand[:, 1], c=1.0 - phase_arr,
-        cmap=_EL_CMAP, vmin=0, vmax=1, s=6, linewidths=0, zorder=3,
+        cmap=_EL_CMAP, vmin=0, vmax=1, s=6, linewidths=0, zorder=3, rasterized=True,
     )
     cb2 = fig.colorbar(
         sc2, ax=ax_el_ph,

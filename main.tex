@@ -59,6 +59,10 @@
 % Acrynoyms
 \usepackage{acro}
 
+% References
+\usepackage[style=numeric,sortcites]{biblatex}
+\addbibresource{references.bib}
+
 \DeclareAcronym{bmi}{short=BMI,long=Brain--Machine Interface}
 \DeclareAcronym{lgssm}{short=LGSSM,long=Linear Gaussian State--Space Model}
 \DeclareAcronym{ols}{short=OLS,long=Ordinary Least Squares}
@@ -215,11 +219,14 @@
   \section*{System identification}
 
   As we assume the \Brain is a \LGSSM, we explore system identification as a
-  means to understand the system matrices defining the model:
+  means to estimate the system matrices defining the model
+  \cite{overscheeSubspaceIdentificationLinear1996}:
   \begin{align*}
     \underline{x}_{t+1} & = \underline{A}\,\underline{x}_t + \underline{B}\,\underline{u}_t + \underline{w}_t, & \underline{w}_t \sim \mathcal{N}(\underline{0}, \underline{Q}) \\
     \underline{y}_t     & = \underline{C}\,\underline{x}_t + \underline{o}_t,                                  & \underline{o}_t \sim \mathcal{N}(\underline{0}, \underline{R})
   \end{align*}
+  Estimation here takes place in an online, causal context as we drive the
+  \Brain with our own inputs.
 
   \subsection*{Identification evaluation}
 
@@ -275,17 +282,18 @@
   \ac{cva} is a subspace method that defines the state as the linear combination
   of past data most correlated with future data. \ac{em} is a iterative
   maximum-likelihood estimator, where the E-step runs a Kalman smoother to infer
-  states, and M-step re-estimates the system matrices assuming them to be true.
-  We turn to an estimation method that uses the \ac{era} (a method which derives
-  deterministic system matrices $\underline{A}$, $\underline{A}$, and
-  $\underline{A}$ directly from the singular-value spectrum of the Hankel matrix
-  of Markov parameters) and \ac{em} that utilises \ac{ols}-estimated Markov
-  parameters and find similar results for $n_x=2$: good reconstruction of $u_1$
-  but poor for $u_2$. However, in contrast to \ac{cva}+\ac{em}, reconstruction
-  of the $u_2$ frequency response improved with $n_x=4$ and $n_x=6$
-  (\autoref{fig:freq_map}). More generally, we observe that the \Brain acts as a
-  low-pass filter. The observation reconstruction quality remained similar
-  between \ac{cva}+\ac{em} and \ac{era}+\ac{em}
+  states, and M-step re-estimates the system matrices assuming them to be true
+  \cite{shumwayApproachTimeSeries1982}. We turn to an estimation method that
+  uses the \ac{era} (a method which derives deterministic system matrices
+  $\underline{A}$, $\underline{A}$, and $\underline{A}$ directly from the
+  singular-value spectrum of the Hankel matrix of Markov parameters
+  \cite{juangEigensystemRealizationAlgorithm1985}) and \ac{em} that utilises
+  \ac{ols}-estimated Markov parameters and find similar results for $n_x=2$:
+  good reconstruction of $u_1$ but poor for $u_2$. However, in contrast to
+  \ac{cva}+\ac{em}, reconstruction of the $u_2$ frequency response improved with
+  $n_x=4$ and $n_x=6$ (\autoref{fig:freq_map}). More generally, we observe that
+  the \Brain acts as a low-pass filter. The observation reconstruction quality
+  remained similar between \ac{cva}+\ac{em} and \ac{era}+\ac{em}
   (\autoref{fig:obs_reconstruction}).
 
   \pgffigure[H]{obs_reconstruction}
@@ -319,13 +327,14 @@
   We offer 3 candidates for control strategies: \ac{lqg} to respect the \Brain's
   \LGSSM structure; \ac{lqi} to correct steady-state error; and \ac{mpc} to
   optimise for and appreciate constraints on $u_i \in [0,1]$. \LQG involves a
-  Kalman filter feeding a \ac{lqr} feedback gain that aims to minimise a
-  quadratic cost on state error and control effort, a controller specific to the
-  \Brain's \LGSSM structure. We augment this with an integrator on the latent
-  state tracking error, which attempts to drive steady-state error to 0. \MPC is
-  a horizon-based controller that re-solves a constrained finite-horizon
-  optimisation at each step, taking the optimal first value each time. This
-  optimisation step allows it to respect constraints on inputs.
+  Kalman filter \cite{kalmanNewApproachLinear1960} feeding a \ac{lqr} feedback
+  gain that aims to minimise a quadratic cost on state error and control effort,
+  a controller specific to the \Brain's \LGSSM structure. We augment this with
+  an integrator on the latent state tracking error, which attempts to drive
+  steady-state error to 0. \MPC is a horizon-based controller that re-solves a
+  constrained finite-horizon optimisation at each step, taking the optimal first
+  value each time. This optimisation step allows it to respect constraints on
+  inputs.
 
   \pgffigure*{spectral_control}
 
@@ -452,11 +461,12 @@
 
   With so many model parameters defined by the complex sequential controller
   design, we turn to hyperparameter optimisation to search the parameter space
-  for an optimal solution. We use \ac{tpe} via the \texttt{optuna} library to
-  run two phases: first, a large set of \ac{bo} trials; then the top trials are
-  re-evaluted on a full target grid, and the best is selected. \ac{bo} is
-  effective as it samples where improvement is expected; its sample efficiency
-  is more feasible with expensive trials over grid search.
+  for an optimal solution. We use \ac{tpe} via the \texttt{optuna} library
+  \cite{akibaOptunaNextgenerationHyperparameter2019} to run two phases: first, a
+  large set of \ac{bo} trials; then the top trials are re-evaluted on a full
+  target grid, and the best is selected. \ac{bo} is effective as it samples
+  where improvement is expected; its sample efficiency is more feasible with
+  expensive trials over grid search.
 
   We define an objective score:
   \begin{equation*}
@@ -623,17 +633,9 @@
   Source code for analysis, plotting, and report typesetting can be found at:
   \href{www.github.com/tahmidazam/gg4}{www.github.com/tahmidazam/gg4}.
 
-
-
-
+  \printbibheading
+  \renewcommand{\bibfont}{\footnotesize}
+  \printbibliography[heading=none]
 \end{multicols*}
-
-
-
-% \pgffigure{bode}
-% 
-% 
-% 
-
 
 \end{document}
