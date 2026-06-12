@@ -149,14 +149,15 @@ def make_sweep_figure(
     default_results: list[dict],
     T: int,
     dist_thresh: float,
-    figsize: tuple[float, float] = (3.13, 3.1),
+    figsize: tuple[float, float] = (3.13, 4.4),
 ) -> plt.Figure:
-    """Two-row BO sweep summary figure (0.5-page width).
+    """Three-row BO sweep summary figure (0.5-page width).
 
     Top: search landscape scatter (mean final distance vs.\\ rotational distance,
          coloured by reach rate); the Phase-B optimal config is starred.
-    Bottom: horizontal stack of four default-vs-optimal bar charts, one per
-            metric, with sparse y-axis ticks and metric name as title.
+    Middle: three default-vs-optimal bar charts (distance, TTT, sector frac.).
+    Bottom: two further bar charts (rotation, path length), centred.
+    All bars use sparse y-axis ticks and the metric name as the title.
     """
     import math
     from constants import ERA_EM_COLOURS, CONTROLLER_COLOURS
@@ -180,10 +181,10 @@ def make_sweep_figure(
         ttt = m["time_to_thresh"]
         ttt_valid = ttt[ttt >= 0]
         return {
-            "final_dist":  float(m["final_dist"].mean()),
-            "ttt":         float(np.nanmean(ttt_valid)) if len(ttt_valid) else float("nan"),
-            "frac_in":     float(m["frac_in_sector"].mean()),
-            "rot_deg":     float(np.degrees(m["rotational_dist"]).mean()),
+            "final_dist": float(m["final_dist"].mean()),
+            "ttt": float(np.nanmean(ttt_valid)) if len(ttt_valid) else float("nan"),
+            "frac_in": float(m["frac_in_sector"].mean()),
+            "rot_deg": float(np.degrees(m["rotational_dist"]).mean()),
             "path_length": float(m["path_length"].mean()),
         }
 
@@ -191,14 +192,19 @@ def make_sweep_figure(
     oa = _agg(optimal_results)
 
     fig = plt.figure(figsize=figsize, layout="constrained")
-    gs = fig.add_gridspec(2, 1, height_ratios=[2, 1.5])
+    gs = fig.add_gridspec(3, 1, height_ratios=[2, 1.5, 1.5])
     ax_land = fig.add_subplot(gs[0])
-    gs_bar = gs[1].subgridspec(1, 5)
-    ax_fd  = fig.add_subplot(gs_bar[0])
-    ax_ttt = fig.add_subplot(gs_bar[1])
-    ax_frac = fig.add_subplot(gs_bar[2])
-    ax_rot = fig.add_subplot(gs_bar[3])
-    ax_pl  = fig.add_subplot(gs_bar[4])
+
+    # Middle row: three bars across the full width (six-column grid, two each).
+    gs_bar1 = gs[1].subgridspec(1, 6)
+    ax_fd = fig.add_subplot(gs_bar1[0:2])
+    ax_ttt = fig.add_subplot(gs_bar1[2:4])
+    ax_frac = fig.add_subplot(gs_bar1[4:6])
+
+    # Bottom row: two bars centred (six-column grid, offset by one column).
+    gs_bar2 = gs[2].subgridspec(1, 6)
+    ax_rot = fig.add_subplot(gs_bar2[1:3])
+    ax_pl = fig.add_subplot(gs_bar2[3:5])
 
     # ── Top: search landscape ─────────────────────────────────────────────────
     opt_m = compute_metrics(optimal_results, T, dist_thresh)
@@ -262,11 +268,11 @@ def make_sweep_figure(
             plt.FuncFormatter(lambda x, _: "0" if x == 0 else f"{x:.3g}")
         )
 
-    _mini(ax_fd,  da["final_dist"],  oa["final_dist"],  r"Dist.\ (cm)")
-    _mini(ax_ttt, da["ttt"],         oa["ttt"],         "TTT (steps)")
-    _mini(ax_frac, da["frac_in"],    oa["frac_in"],     "Sector frac.")
-    _mini(ax_rot, da["rot_deg"],     oa["rot_deg"],     r"Rot.\ ($^\circ$)")
-    _mini(ax_pl,  da["path_length"], oa["path_length"], "Path (cm)")
+    _mini(ax_fd, da["final_dist"], oa["final_dist"], r"Dist.\ (cm)")
+    _mini(ax_ttt, da["ttt"], oa["ttt"], "TTT (steps)")
+    _mini(ax_frac, da["frac_in"], oa["frac_in"], "Sector frac.")
+    _mini(ax_rot, da["rot_deg"], oa["rot_deg"], r"Rot.\ ($^\circ$)")
+    _mini(ax_pl, da["path_length"], oa["path_length"], "Path (cm)")
 
     handles = [
         plt.Rectangle((0, 0), 1, 1, color=c_def, alpha=0.8),
